@@ -23,6 +23,80 @@ guard.
 | Content-Type | `application/json` (or `multipart/form-data` for uploads) |
 | All responses are JSON | Laravel enforces JSON for `/api/*` (see `bootstrap/app.php`) |
 
+### 1.1 Authentication Model
+
+There is **one Flutter mobile app** shared by all mobile-role users (Customer + Offsite Staff per capstone Section 3.4). Role-based UI gating happens **client-side after login**, not by separate apps.
+
+#### JWT lifecycle
+
+```
+User opens Flutter app
+   ↓
+Login or Register
+   ↓
+Server returns { access_token, user.role }
+   ↓
+Flutter writes JWT to flutter_secure_storage
+   ↓
+Every API call: Dio interceptor reads JWT and adds Authorization header
+   ↓
+Server's auth:api guard validates token + sets request->user()->role
+   ↓
+The role-based middleware ('role:customer' etc.) allows or blocks the request
+```
+
+#### Storage choice: flutter_secure_storage
+
+| Platform | Backend | Encryption |
+|---|---|---|
+| iOS | Keychain | Hardware-backed |
+| Android | EncryptedSharedPreferences | AES-256, Keystore-wrapped |
+| Survives app restart | Yes | Yes |
+| Survives uninstall | No | No (intentional) |
+
+#### JWT contents (informational)
+
+The token payload contains the user id + role + is_team_leader + department_team as custom claims (see `app/Models/User.php` -> `getJWTCustomClaims()`). Flutter does NOT need to parse these — it just sends the token and the server decides access.
+
+#### Per-role screen gating
+
+Flutter reads `user.role` from the login response and routes to the appropriate screen tree:
+
+```
+role == "customer"
+   → CustomerScreen tree:
+        - Submit Complaint button  → POST /api/incidents
+        - My History list           → GET /api/incidents
+        - Status Tracking           → GET /api/incidents/{id}
+        - Notifications             → GET /api/notifications
+
+role == "offsite_staff"
+   → TeamLeaderScreen tree:
+        - Assigned Queue list       → GET /api/assignments
+        - Accept/Reject/Correct btn → POST /api/assignments/{id}/team-leader-action
+        - Update Status btn         → PATCH /api/incidents/{id}/status
+        - Availability Toggle       → POST /api/availability
+        - Photo Proof Upload        → POST /api/incidents/{id}/attachments
+        - Notifications             → GET /api/notifications
+
+is_team_leader == true (subset of offsite_staff)
+   → the same TeamLeaderScreen tree — Team Leaders ARE offsite staff
+     with extra routing responsibility. UI may show the queue more prominently.
+```
+
+#### Token expiry + refresh
+
+- TTL: 24 hours (`JWT_TTL=1440` in `.env`)
+- On 401 from any API call: Flutter clears the JWT from secure storage and routes to the Login screen
+- Flutter may proactively call `POST /api/auth/refresh` to get a new token before expiry
+
+#### Why Customer and Offsite Staff share one app
+
+Per capstone Section 3.4:
+> "Customers, offsite team leaders, engineers, and administrators interact with the platform through a cross-platform mobile frontend developed in Flutter **and a web portal built on Laravel**."
+
+Engineers and Administrators use the **Laravel web portal** (separate code path). Only Customers and Offsite Staff use the Flutter app. Both are served from the same binary because they share auth infrastructure and many UI patterns (login, notifications, profile).
+
 ---
 
 ## 2. Endpoints Consumed by Flutter
