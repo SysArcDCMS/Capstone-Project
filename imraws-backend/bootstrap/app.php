@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Disable CSRF for the API (we use JWT, not sessions).
         $middleware->validateCsrfTokens(except: [
             'api/*',
+            'login',           // web login (curl/scriptable)
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

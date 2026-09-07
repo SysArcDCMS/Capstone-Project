@@ -27,7 +27,7 @@
       <h3 style="font-weight:600; color:#1e293b; margin-bottom:0.75rem;">Avg Resolution (hours) by Dept</h3>
       <table><tbody>
         @forelse($d['resolution']['avg_hours_by_department'] as $r)
-          <tr><td>{{ ucwords(str_replace('_',' ',$r['department_team'] ?? '—')) }}</td><td style="text-align:right;font-weight:600;">{{ $r['avg_hours'] }}h ({{ $r['total_resolved'] }} resolved)</td></tr>
+          <tr><td>{{ ucwords(str_replace('_',' ',$r['department_team'] ?? '—')) }}</td><td style="text-align:right;font-weight:600;">{{ number_format((float) $r['avg_hours'], 2) }}h ({{ $r['total_resolved'] }} resolved)</td></tr>
         @empty
           <tr><td colspan="2" style="color:#94a3b8;">No resolved incidents yet.</td></tr>
         @endforelse

@@ -23,12 +23,8 @@ use Illuminate\Validation\Rule;
  */
 class PortalController extends Controller
 {
-    public function __construct()
-    {
-        // All routes here require web auth (session).
-        $this->middleware('auth:web')->except(['showLogin', 'login']);
-        $this->middleware('guest:web')->only(['showLogin', 'login']);
-    }
+    // Middleware is applied per-route in routes/web.php (auth:web / guest:web).
+    // Constructors in regular Controllers don't have $this->middleware() in modern Laravel.
 
     // ── Auth ──────────────────────────────────────────────────────────
 
