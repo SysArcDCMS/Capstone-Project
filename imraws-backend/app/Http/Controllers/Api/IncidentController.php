@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Incident;
 use App\Models\User;
+use App\Services\AiRoutingService;
 use App\Services\NlpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,15 +15,34 @@ use Illuminate\Validation\Rule;
 
 /**
  * Incident controller — capstone DFD 2.0 (Complaint Processing)
- * plus DFD 5.0 (Resolution Tracking).
+ * plus DFD 5.0 (Resolution Tracking) and DFD 3.0 (AI-Driven Routing).
  *
- * Endpoint: POST /api/incidents  -> NLP classification + persistence.
- * Per capstone Process 2.1 (Receive) through 2.11 (Store Incident).
+ * POST /api/incidents runs the full DFD 2.1 → 2.11 → 3.0 flow:
+ *   - Receive Complaint Text (2.1)
+ *   - Validate Customer Token (2.2)
+ *   - Sanitize & Normalize (2.3)
+ *   - Tokenize, Stopword, Lemmatize (2.4, 2.5)
+ *   - Feature Extraction — TF-IDF (2.6)
+ *   - NLP Classification (2.7)
+ *   - Sentiment Analysis (2.8)
+ *   - Composite Severity Score (2.9)
+ *   - Assign Severity Level (2.10)
+ *   - Store Incident (2.11)
+ *   - Then automatically:
+ *   - Retrieve Incident Data (3.1)
+ *   - Map Category to Department (3.2)
+ *   - Query Team Leader(s) (3.3)
+ *   - Filter by Availability (3.4)
+ *   - Select Primary Team Leader (3.5)
+ *   - Create Assignment Record (3.6)
+ *   - Update Incident Status to Assigned (3.7)
+ *   - Push to Team Leader Mobile Queue (3.8)
  */
 class IncidentController extends Controller
 {
     public function __construct(
         private readonly NlpService $nlp,
+        private readonly AiRoutingService $router,
     ) {}
 
     /**
@@ -146,9 +166,24 @@ class IncidentController extends Controller
             newValue:  $incident->only(['customer_id', 'category', 'severity', 'composite_score', 'status']),
         );
 
+        // DFD 3.0 — auto-route to a Team Leader.
+        $assignment = null;
+        try {
+            $assignment = $this->router->route($incident);
+        } catch (\Throwable $e) {
+            AuditLog::record(
+                userId:    $user->id,
+                action:    'routing_failed',
+                tableName: 'tbl_incidents',
+                recordId:  $incident->id,
+                newValue:  ['error' => $e->getMessage()],
+            );
+        }
+
         return response()->json([
             'data' => $incident->load('customer:id,full_name,email'),
             'analysis' => $analysis,
+            'assignment' => $assignment,
         ], 201);
     }
 

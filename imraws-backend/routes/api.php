@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\IncidentController;
 
@@ -34,10 +35,6 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
 });
 
 // ── Incidents ─────────────────────────────────────────────────────────
-// Any authenticated user can list/show incidents (filtered by role
-// inside the controller). Status updates are limited to offsite_staff
-// and engineer per capstone DFD 5.3 / 5.7. Customer-only creation
-// for /store is enforced inside the controller.
 Route::middleware('auth:api')->group(function () {
     Route::get('incidents',               [IncidentController::class, 'index']);
     Route::post('incidents',              [IncidentController::class, 'store']);
@@ -48,4 +45,25 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('incidents/{id}/status', [IncidentController::class, 'updateStatus'])
         ->whereNumber('id')
         ->middleware('role:offsite_staff,engineer,administrator');
+
+    // Manual re-route (admin/engineer)
+    Route::post('incidents/{id}/route',   [AssignmentController::class, 'routeIncident'])
+        ->whereNumber('id')
+        ->middleware('role:engineer,administrator');
+});
+
+// ── Assignments ───────────────────────────────────────────────────────
+Route::middleware('auth:api')->prefix('assignments')->group(function () {
+    Route::get('/',                  [AssignmentController::class, 'index']);
+    Route::get('/{id}',              [AssignmentController::class, 'show'])->whereNumber('id');
+
+    // Team leader 3-action endpoint — capstone DFD 4.4 / 4.5 / 4.7
+    Route::post('/{id}/team-leader-action', [AssignmentController::class, 'teamLeaderAction'])
+        ->whereNumber('id')
+        ->middleware('role:offsite_staff');
+
+    // Engineer 3-mode adjudication — capstone DFD 4.10
+    Route::post('/{id}/engineer-adjudicate', [AssignmentController::class, 'engineerAdjudicate'])
+        ->whereNumber('id')
+        ->middleware('role:engineer');
 });
