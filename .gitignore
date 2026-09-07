@@ -15,7 +15,7 @@ imraws-backend/bootstrap/cache/*.php
 !imraws-backend/storage/logs/.gitkeep
 
 # === Python NLP service ===
-ai-nlp/fastapi_nlp_env/
+ai-nlp/ai_nlp_env/
 ai-nlp/venv/
 ai-nlp/.env
 ai-nlp/__pycache__/

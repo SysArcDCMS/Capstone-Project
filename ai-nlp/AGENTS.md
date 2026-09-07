@@ -1,9 +1,9 @@
 # FastAPI NLP Microservice - Agent Instructions
 
 ## Environment Setup
-- ALWAYS use the virtualenv `fastapi_nlp_env` for all Python operations
+- ALWAYS use the virtualenv `ai_nlp_env` for all Python operations
 - NEVER install packages globally or modify system Python
-- Activate virtualenv: `source fastapi_nlp_env/bin/activate` (Linux/Mac)
+- Activate virtualenv: `source ai_nlp_env/bin/activate` (Linux/Mac)
 - All testing, running, and installations must happen in the virtualenv
 
 ## Development Guidelines

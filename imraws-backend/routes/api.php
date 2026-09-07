@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\IncidentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,4 +31,21 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
     Route::get('me',      [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh',[AuthController::class, 'refresh']);
+});
+
+// ── Incidents ─────────────────────────────────────────────────────────
+// Any authenticated user can list/show incidents (filtered by role
+// inside the controller). Status updates are limited to offsite_staff
+// and engineer per capstone DFD 5.3 / 5.7. Customer-only creation
+// for /store is enforced inside the controller.
+Route::middleware('auth:api')->group(function () {
+    Route::get('incidents',               [IncidentController::class, 'index']);
+    Route::post('incidents',              [IncidentController::class, 'store']);
+
+    Route::get('incidents/{id}',          [IncidentController::class, 'show'])
+        ->whereNumber('id');
+
+    Route::patch('incidents/{id}/status', [IncidentController::class, 'updateStatus'])
+        ->whereNumber('id')
+        ->middleware('role:offsite_staff,engineer,administrator');
 });

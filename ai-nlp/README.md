@@ -17,8 +17,8 @@ A FastAPI-based microservice for processing water service complaints using NLP. 
 
 1. Create virtual environment:
 ```bash
-python -m venv fastapi_nlp_env
-source fastapi_nlp_env/bin/activate  # Linux/Mac
+python -m venv ai_nlp_env
+source ai_nlp_env/bin/activate  # Linux/Mac
 ```
 
 2. Install dependencies:

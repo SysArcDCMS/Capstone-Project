@@ -3,6 +3,10 @@ Severity scoring engine.
 Adapted from Flask version for FastAPI.
 Combines RoBERTa sentiment + days_pending + urgency keywords.
 Config loaded from JSON file, with fallback defaults.
+
+Capstone DFD Process 2.9 — Calculate Composite Severity Score:
+computes a numeric composite from sentiment, days elapsed, and keyword
+frequency. Feeds Process 2.10 — Assign Severity Level.
 """
 
 import logging
@@ -41,7 +45,12 @@ _CONFIG = {
         'contaminated', 'emergency', 'urgent', 'flooding',
         'no supply', 'broken meter', 'hazardous',
         'health risk', 'days without water',
-    ]
+    ],
+    # ── Capstone Process 2.9 — composite score weights ───────────
+    # composite = sentiment_score + days_bonus + keyword_hits*0.1
+    'days_pending_weight':      0.10,
+    'keyword_hit_weight':       0.10,
+    'keyword_hit_max':          3,    # cap keyword contribution
 }
 
 
@@ -114,13 +123,70 @@ def get_severity(
               OR pending 1-2 days
     LOW    → POSITIVE or mildly negative, fresh complaint
     """
+    severity, _ = get_severity_with_score(
+        sentiment_label, sentiment_score, days_pending, text
+    )
+    return severity
+
+
+def compute_composite_score(
+    sentiment_label: str,
+    sentiment_score: float,
+    days_pending: int,
+    text: str
+) -> float:
+    """
+    Capstone DFD Process 2.9 — Calculate Composite Severity Score.
+
+    composite = sentiment_contribution
+              + days_pending_bonus
+              + frequency_of_urgency_keywords * weight
+
+    Higher = more urgent. Caller persists this to tbl_incidents.
+    """
     text_lower = text.lower()
 
-    # Check urgency keywords
+    # 1. Sentiment contribution: 0 for POSITIVE, score for NEGATIVE,
+    #    half for NEUTRAL.
+    if sentiment_label == 'NEGATIVE':
+        sentiment_contrib = float(sentiment_score)
+    elif sentiment_label == 'NEUTRAL':
+        sentiment_contrib = float(sentiment_score) * 0.5
+    else:
+        sentiment_contrib = 0.0
+
+    # 2. Days-pending bonus: linear up to high_days_pending.
+    days_bonus = min(days_pending, _CONFIG['high_days_pending']) * _CONFIG['days_pending_weight']
+
+    # 3. Keyword-hit frequency (capped). Matches substring presence;
+    #    each hit contributes _keyword_hit_weight.
+    keyword_hits = sum(
+        1 for kw in _CONFIG['urgency_keywords'] if kw in text_lower
+    )
+    keyword_bonus = min(keyword_hits, _CONFIG['keyword_hit_max']) * _CONFIG['keyword_hit_weight']
+
+    composite = sentiment_contrib + days_bonus + keyword_bonus
+    return round(composite, 4)
+
+
+def get_severity_with_score(
+    sentiment_label: str,
+    sentiment_score: float,
+    days_pending: int,
+    text: str
+) -> tuple[str, float]:
+    """
+    Like get_severity() but returns (severity_level, composite_score).
+    Capstone Process 2.9 + 2.10 combined.
+    """
+    text_lower = text.lower()
+
     urgency_hit = any(
         kw in text_lower
         for kw in _CONFIG['urgency_keywords']
     )
+
+    composite = compute_composite_score(sentiment_label, sentiment_score, days_pending, text)
 
     # ── HIGH ─────────────────────────────────────────────
     if (
@@ -131,7 +197,7 @@ def get_severity(
         or urgency_hit
         or days_pending >= _CONFIG['high_days_pending']
     ):
-        return "High"
+        return "High", composite
 
     # ── MEDIUM ───────────────────────────────────────────
     elif (
@@ -142,11 +208,11 @@ def get_severity(
         or sentiment_label == 'NEUTRAL'
         or days_pending >= _CONFIG['medium_days_pending']
     ):
-        return "Medium"
+        return "Medium", composite
 
     # ── LOW ──────────────────────────────────────────────
     else:
-        return "Low"
+        return "Low", composite
 
 
 def reload_config(new_config: dict) -> dict:
