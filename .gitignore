@@ -1,0 +1,49 @@
+# === Laravel backend ===
+imraws-backend/vendor/
+imraws-backend/node_modules/
+imraws-backend/.env
+imraws-backend/.env.backup
+imraws-backend/storage/logs/*.log
+imraws-backend/storage/framework/cache/
+imraws-backend/storage/framework/sessions/
+imraws-backend/storage/framework/views/
+imraws-backend/public/storage/
+imraws-backend/database/database.sqlite
+imraws-backend/bootstrap/cache/*.php
+!imraws-backend/bootstrap/cache/.gitkeep
+!imraws-backend/storage/.gitkeep
+!imraws-backend/storage/logs/.gitkeep
+
+# === Python NLP service ===
+ai-nlp/fastapi_nlp_env/
+ai-nlp/venv/
+ai-nlp/.env
+ai-nlp/__pycache__/
+ai-nlp/**/__pycache__/
+ai-nlp/*.pyc
+ai-nlp/**/*.pyc
+ai-nlp/logs/*.log
+ai-nlp/.pytest_cache/
+
+# === UI reference folder (excluded — we use Blade templates instead) ===
+website-ui-only/
+!website-ui-only/.gitkeep
+
+# === User-uploaded attachments (regenerated per env) ===
+imraws-backend/storage/app/public/attachments/*
+!imraws-backend/storage/app/public/attachments/.gitkeep
+
+# === IDE / OS ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Misc ===
+*.bak
+*.tmp
+*.zip
+*.tar.gz
