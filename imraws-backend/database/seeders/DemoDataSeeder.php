@@ -39,17 +39,17 @@ class DemoDataSeeder extends Seeder
             // ── Users ─────────────────────────────────────────────────
             $admin = User::create([
                 'full_name'  => 'Malupiton Admin',
-                'email'      => 'admin@maynilad.local',
+                'email'      => 'admin@imraws.local',
                 'password'   => Hash::make('admin123'),
                 'role'       => User::ROLE_ADMINISTRATOR,
                 'is_active'  => true,
             ]);
 
             $engineers = collect([
-                ['Axel Brion',  'engineer.axel@maynilad.local'],
-                ['Kairo Zenith', 'engineer.kairo@maynilad.local'],
-                ['Lior Solven', 'engineer.lior@maynilad.local'],
-                ['Lyra Vantrex', 'engineer.lyra@maynilad.local'],
+                ['Axel Brion',  'engineer.axel@imraws.local'],
+                ['Kairo Zenith', 'engineer.kairo@imraws.local'],
+                ['Lior Solven', 'engineer.lior@imraws.local'],
+                ['Lyra Vantrex', 'engineer.lyra@imraws.local'],
             ])->map(fn ($e) => User::create([
                 'full_name' => "Engr. {$e[0]}",
                 'email'     => $e[1],
@@ -59,10 +59,10 @@ class DemoDataSeeder extends Seeder
             ]));
 
             $teamLeaders = collect([
-                ['Roberto Dela Cruz', 'tl.metering@maynilad.local',   'metering'],
-                ['Kiko Valdez',       'tl.billing@maynilad.local',    'billing'],
-                ['Maris Domingo',     'tl.water_quality@maynilad.local','water_quality'],
-                ['Renz Cruz',         'tl.operations@maynilad.local', 'operations'],
+                ['Roberto Dela Cruz', 'tl.metering@imraws.local',   'metering'],
+                ['Kiko Valdez',       'tl.billing@imraws.local',    'billing'],
+                ['Maris Domingo',     'tl.water_quality@imraws.local','water_quality'],
+                ['Renz Cruz',         'tl.operations@imraws.local', 'operations'],
             ])->map(fn ($tl) => User::create([
                 'full_name'       => $tl[0],
                 'email'           => $tl[1],
@@ -165,9 +165,9 @@ class DemoDataSeeder extends Seeder
             $this->command->info('Demo data seeded successfully.');
             $this->command->info('');
             $this->command->info('Login credentials:');
-            $this->command->info('  Admin:      admin@maynilad.local / admin123');
-            $this->command->info('  Engineer:   engineer.axel@maynilad.local / engineer123');
-            $this->command->info('  Offsite:    tl.metering@maynilad.local / staff123');
+            $this->command->info('  Admin:      admin@imraws.local / admin123');
+            $this->command->info('  Engineer:   engineer.axel@imraws.local / engineer123');
+            $this->command->info('  Offsite:    tl.metering@imraws.local / staff123');
             $this->command->info('  Customer:   robert.j@example.com / customer123');
         });
     }

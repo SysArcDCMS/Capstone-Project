@@ -11,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 /**
@@ -229,10 +228,22 @@ class PortalController extends Controller
 
     public function assignments(Request $request)
     {
-        $resp = Http::withToken(session('jwt'))
-            ->get(rtrim(env('APP_URL','http://127.0.0.1:8000'),'/').'/api/assignments');
-        // Fallback: render whatever Blade template can show.
-        return view('assignments.index', ['assignments' => collect()]);
+        $query = \App\Models\Assignment::with([
+                'incident:id,description,category,severity,status',
+                'teamLeader:id,full_name,department_team',
+            ])
+            ->orderByDesc('assigned_at');
+
+        // Offsite staff only see their own queue.
+        if (auth()->user()->isOffsiteStaff()) {
+            $query->where('team_leader_id', auth()->id());
+        }
+
+        if ($status = $request->query('status')) {
+            $query->where('action_status', $status);
+        }
+
+        return view('assignments.index', ['assignments' => $query->paginate(20)]);
     }
 
     // ── Reports ──────────────────────────────────────────────────────

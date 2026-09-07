@@ -6,19 +6,48 @@
     <p>Engineer adjudication queue — review flagged incidents</p>
   </div>
 
-  @php
-    // Pull assignments via API so we don't need a second Eloquent query path.
-    $token = session('jwt');
-  @endphp
-
-  <div style="background:white; border-radius:1rem; padding:1.25rem; border:1px solid #f1f5f9;">
-    <p style="color:#64748b;">
-      The full assignments Blade view (with adjudicate buttons calling
-      <code>POST /api/assignments/{id}/engineer-adjudicate</code>) is wired
-      through the API. For the demo, view the queue via Postman or your
-      REST client, or open
-      <a href="/complaints" style="color:#2563eb;">/complaints</a> to drill
-      into individual incidents and view their assignment history.
-    </p>
+  <div class="table-wrap mt-3">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Incident</th>
+          <th>Category</th>
+          <th>Severity</th>
+          <th>Team Leader</th>
+          <th>Status</th>
+          <th>Assigned At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @forelse($assignments as $a)
+          @php
+            $badge = [
+              'pending' => 'badge-gray', 'assigned' => 'badge-blue',
+              'accept' => 'badge-green', 'reject' => 'badge-red',
+              'correct' => 'badge-yellow', 'override' => 'badge-orange',
+              'reassign' => 'badge-gray', 'in_progress' => 'badge-orange',
+              'resolved' => 'badge-green',
+            ][$a->action_status] ?? 'badge-gray';
+          @endphp
+          <tr>
+            <td>#{{ $a->id }}</td>
+            <td>#{{ $a->incident_id }} — {{ \Illuminate\Support\Str::limit($a->incident->description ?? '', 40) }}</td>
+            <td>{{ $a->incident->category ?? '—' }}</td>
+            <td>{{ $a->incident->severity ?? '—' }}</td>
+            <td>{{ $a->teamLeader->full_name ?? '—' }}</td>
+            <td><span class="badge-pill {{ $badge }}">{{ ucwords(str_replace('_',' ',$a->action_status)) }}</span></td>
+            <td>{{ $a->assigned_at?->format('M d H:i') ?? '—' }}</td>
+            <td>
+              <a href="{{ route('complaints.show', $a->incident_id) }}" class="action-icon" title="View incident"><i data-lucide="eye"></i></a>
+            </td>
+          </tr>
+        @empty
+          <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem;">No assignments yet.</td></tr>
+        @endforelse
+      </tbody>
+    </table>
   </div>
+  <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">{!! $assignments->links() !!}</div>
 @endsection
