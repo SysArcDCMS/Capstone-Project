@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AssignmentController;
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\IncidentController;
 
@@ -50,6 +51,15 @@ Route::middleware('auth:api')->group(function () {
     Route::post('incidents/{id}/route',   [AssignmentController::class, 'routeIncident'])
         ->whereNumber('id')
         ->middleware('role:engineer,administrator');
+
+    // Photo proof attachments (DFD 5.6)
+    Route::get('incidents/{id}/attachments',  [AttachmentController::class, 'index'])
+        ->whereNumber('id');
+    Route::post('incidents/{id}/attachments', [AttachmentController::class, 'store'])
+        ->whereNumber('id')
+        ->middleware('role:offsite_staff,engineer,administrator');
+    Route::delete('attachments/{id}',        [AttachmentController::class, 'destroy'])
+        ->whereNumber('id');
 });
 
 // ── Assignments ───────────────────────────────────────────────────────
