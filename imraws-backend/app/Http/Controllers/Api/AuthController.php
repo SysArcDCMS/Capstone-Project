@@ -124,6 +124,36 @@ class AuthController extends Controller
     }
 
     /**
+     * PATCH /api/auth/profile
+     * DFD 1.8 — Update Profile Information (any role, own profile only).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'full_name'  => ['sometimes', 'string', 'max:120'],
+            'contact_no' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'address'    => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        $old = $user->only(['full_name', 'contact_no', 'address']);
+        $user->fill($data)->save();
+
+        AuditLog::record(
+            userId:    $user->id,
+            action:    'self.update_profile',
+            tableName: 'users',
+            recordId:  $user->id,
+            oldValue:  $old,
+            newValue:  $user->only(['full_name', 'contact_no', 'address']),
+        );
+
+        return response()->json(['data' => $user->fresh()]);
+    }
+
+    /**
      * POST /api/auth/logout
      */
     public function logout(): JsonResponse

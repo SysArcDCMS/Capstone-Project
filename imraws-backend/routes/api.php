@@ -4,7 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\IncidentController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +35,7 @@ Route::prefix('auth')->group(function () {
 // ── Authenticated endpoints ───────────────────────────────────────────
 Route::middleware('auth:api')->prefix('auth')->group(function () {
     Route::get('me',      [AuthController::class, 'me']);
+    Route::patch('profile',[AuthController::class, 'updateProfile']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh',[AuthController::class, 'refresh']);
 });
@@ -60,6 +65,46 @@ Route::middleware('auth:api')->group(function () {
         ->middleware('role:offsite_staff,engineer,administrator');
     Route::delete('attachments/{id}',        [AttachmentController::class, 'destroy'])
         ->whereNumber('id');
+});
+
+// ── Availability ──────────────────────────────────────────────────────
+// Engineers and administrators can read all; offsite_staff can toggle own.
+Route::middleware('auth:api')->prefix('availability')->group(function () {
+    Route::get('/',  [AvailabilityController::class, 'index']);
+    Route::get('/me', [AvailabilityController::class, 'me']);
+    Route::post('/', [AvailabilityController::class, 'store']);
+});
+
+// ── User Management ───────────────────────────────────────────────────
+// Admin CRUD + self profile updates (DFD 1.5, 1.7, 1.8).
+Route::middleware('auth:api')->prefix('users')->group(function () {
+    Route::get('/',                    [UserController::class, 'index'])
+        ->middleware('role:administrator,engineer');
+    Route::post('/',                   [UserController::class, 'store'])
+        ->middleware('role:administrator');
+    Route::get('/{id}',                [UserController::class, 'show'])
+        ->whereNumber('id')
+        ->middleware('role:administrator,engineer');
+    Route::patch('/{id}',              [UserController::class, 'update'])
+        ->whereNumber('id');
+    Route::patch('/{id}/deactivate',   [UserController::class, 'deactivate'])
+        ->whereNumber('id')
+        ->middleware('role:administrator');
+});
+
+// ── Notifications ─────────────────────────────────────────────────────
+Route::middleware('auth:api')->prefix('notifications')->group(function () {
+    Route::get('/',                      [NotificationController::class, 'index']);
+    Route::patch('/{id}/read',           [NotificationController::class, 'markRead'])->whereNumber('id');
+    Route::post('/mark-all-read',        [NotificationController::class, 'markAllRead']);
+});
+
+// ── Reports / Analytics (DFD 6.0) ─────────────────────────────────────
+Route::middleware('auth:api')->prefix('reports')->group(function () {
+    Route::get('/dashboard',    [ReportController::class, 'dashboard']);
+    Route::get('/incidents',    [ReportController::class, 'incidents']);
+    Route::get('/audit-logs',   [ReportController::class, 'auditLogs'])
+        ->middleware('role:administrator,engineer');
 });
 
 // ── Assignments ───────────────────────────────────────────────────────
