@@ -1,16 +1,7 @@
-/// Central API configuration.
-///
-/// Base URL comes from a compile-time define so it can be changed without
-/// touching source:
-///
-///   flutter run --dart-define=API_URL=http://192.168.1.10:8000/api
-///
-/// Defaults to the Android emulator's host loopback (maps to the PC where
-/// the Laravel backend runs). Physical devices must pass their PC's LAN IP.
 class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://10.0.2.2:8000/api',
+    defaultValue: 'http://192.168.254.122:8000/api',
   );
 
   // ── Auth ────────────────────────────────────────────────────────────
