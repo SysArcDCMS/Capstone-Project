@@ -22,6 +22,7 @@ class Incident extends Model
     protected $table = 'tbl_incidents';
 
     public const STATUS_OPEN        = 'open';
+    public const STATUS_ASSIGNED    = 'assigned';
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_RESOLVED    = 'resolved';
     public const STATUS_REJECTED    = 'rejected';

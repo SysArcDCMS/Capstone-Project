@@ -118,7 +118,7 @@ class DemoDataSeeder extends Seeder
                     'category'        => $category,
                     'severity'        => $severity,
                     'composite_score' => $composite,
-                    'status'          => $severity === 'High' ? 'in_progress' : 'open',
+                    'status'          => 'open',
                     'submitted_at'    => now()->subDays(rand(1, 10)),
                     'resolved_at'     => $severity === 'Low' ? now()->subDays(rand(0,2)) : null,
                     'created_by'      => $customer->id,
@@ -137,6 +137,13 @@ class DemoDataSeeder extends Seeder
                         'created_by'        => $admin->id,
                         'updated_by'        => $admin->id,
                     ]);
+
+                    // Routed incidents sit at "assigned" until field work begins (DFD 3.7 / 5.3)
+                    if ($severity !== 'Low') {
+                        $incident->status = Incident::STATUS_ASSIGNED;
+                        $incident->updated_by = $admin->id;
+                        $incident->save();
+                    }
                 }
             }
 

@@ -19,7 +19,7 @@ return new class extends Migration
      *   location (text, nullable)    -> location
      *   category (string, nullable)  -> category  (set by NLP service)
      *   severity (string, nullable)  -> severity  (High | Medium | Low)
-     *   status (enum)                -> status    (open|in_progress|resolved|rejected)
+     *   status (enum)                -> status    (open|assigned|in_progress|resolved|rejected)
      *   submitted_at (timestamp)     -> submitted_at
      *   resolved_at (timestamp, null)-> resolved_at
      *   created_by, updated_by       -> audit columns
@@ -28,7 +28,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("CREATE TYPE incident_status AS ENUM ('open', 'in_progress', 'resolved', 'rejected')");
+        DB::statement("CREATE TYPE incident_status AS ENUM ('open', 'assigned', 'in_progress', 'resolved', 'rejected')");
 
         Schema::create('tbl_incidents', function (Blueprint $table) {
             $table->id();

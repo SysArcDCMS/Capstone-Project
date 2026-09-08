@@ -127,7 +127,7 @@ class AiRoutingService
 
         // Step 3.7: Update Incident Status to Assigned
         if ($incident->status === Incident::STATUS_OPEN) {
-            $incident->status = Incident::STATUS_IN_PROGRESS;
+            $incident->status = Incident::STATUS_ASSIGNED;
             $incident->updated_by = auth()->id();
             $incident->save();
         }

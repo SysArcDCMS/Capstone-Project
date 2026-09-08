@@ -223,12 +223,19 @@ class _StatusBadge extends StatelessWidget {
     Color color = AppColors.orange;
     Color bgColor = const Color(0xFFFFF4E5);
     
-    if (status.toUpperCase() == 'RESOLVED' || status.toUpperCase() == 'COMPLETE') {
+    final s = status.toUpperCase();
+    if (s == 'RESOLVED' || s == 'COMPLETE') {
       color = AppColors.green;
       bgColor = const Color(0xFFE6F5EE);
-    } else if (status.toUpperCase() == 'OPEN') {
+    } else if (s == 'OPEN') {
       color = AppColors.red;
       bgColor = const Color(0xFFFEE2E2);
+    } else if (s == 'ASSIGNED') {
+      color = AppColors.orange;
+      bgColor = const Color(0xFFFFF4E5);
+    } else if (s == 'IN_PROGRESS') {
+      color = AppColors.blueLink;
+      bgColor = const Color(0xFFE7F1FF);
     }
 
     return Container(

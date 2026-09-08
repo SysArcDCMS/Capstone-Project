@@ -83,7 +83,7 @@ class IncidentService {
   }
 
   /// PATCH /api/incidents/{id}/status
-  /// Valid statuses: open, in_progress, resolved, rejected.
+  /// Valid statuses: open, assigned, in_progress, resolved, rejected.
   Future<Incident?> updateStatus(
     int id, {
     required String status,

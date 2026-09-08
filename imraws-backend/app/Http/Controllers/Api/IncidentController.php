@@ -228,6 +228,7 @@ class IncidentController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in([
                 Incident::STATUS_OPEN,
+                Incident::STATUS_ASSIGNED,
                 Incident::STATUS_IN_PROGRESS,
                 Incident::STATUS_RESOLVED,
                 Incident::STATUS_REJECTED,
