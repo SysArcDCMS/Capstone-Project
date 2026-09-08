@@ -16,7 +16,7 @@
     <input type="text" name="q" placeholder="Search by ID, subject, or user..." value="{{ request('q') }}" />
     <select name="status">
       <option value="">All Statuses</option>
-      @foreach(['open','in_progress','resolved','rejected'] as $s)
+      @foreach(['open','assigned','in_progress','resolved','rejected'] as $s)
         <option value="{{ $s }}" @selected(request('status')===$s)>{{ ucwords(str_replace('_',' ',$s)) }}</option>
       @endforeach
     </select>
@@ -51,7 +51,8 @@
         @forelse($complaints as $c)
           @php
             $badge = [
-              'open' => 'badge-red', 'in_progress' => 'badge-orange',
+              'open' => 'badge-red', 'assigned' => 'badge-blue',
+              'in_progress' => 'badge-orange',
               'resolved' => 'badge-green', 'rejected' => 'badge-gray',
             ][$c->status] ?? 'badge-gray';
             $sevBadge = ['High'=>'badge-red','Medium'=>'badge-yellow','Low'=>'badge-blue'][$c->severity] ?? 'badge-gray';

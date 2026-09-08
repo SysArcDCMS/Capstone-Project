@@ -10,7 +10,7 @@
   <div class="grid grid-cols-2 gap-4 mt-3">
     <div class="stat-card"><div><div class="stat-label">Category</div><div class="stat-value" style="font-size:1.2rem;">{{ $incident->category ?? '—' }}</div></div></div>
     <div class="stat-card"><div><div class="stat-label">Severity</div><div class="stat-value" style="font-size:1.2rem;">{{ $incident->severity ?? '—' }} <small style="font-size:0.7rem;color:#64748b;">(composite {{ $incident->composite_score ?? '—' }})</small></div></div></div>
-    <div class="stat-card"><div><div class="stat-label">Status</div><div class="stat-value" style="font-size:1.2rem;">{{ ucwords(str_replace('_',' ',$incident->status)) }}</div></div></div>
+    <div class="stat-card"><div><div class="stat-label">Status</div><div class="stat-value" style="font-size:1.2rem;"><span class="badge-pill {{ ['open'=>'badge-red','assigned'=>'badge-blue','in_progress'=>'badge-orange','resolved'=>'badge-green','rejected'=>'badge-gray'][$incident->status] ?? 'badge-gray' }}">{{ ucwords(str_replace('_',' ',$incident->status)) }}</span></div></div></div>
     <div class="stat-card"><div><div class="stat-label">Location</div><div class="stat-value" style="font-size:1.1rem;">{{ $incident->location ?? '—' }}</div></div></div>
   </div>
 

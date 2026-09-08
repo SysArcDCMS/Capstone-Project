@@ -14,7 +14,7 @@
   @endphp
 
   <!-- Stats Row 1 -->
-  <div class="grid grid-cols-4 gap-4">
+  <div class="grid grid-cols-5 gap-4">
     <div class="stat-card">
       <div><div class="stat-label">Total Complaints</div><div class="stat-value">{{ $inc['total'] }}</div></div>
       <span class="stat-icon" style="color:#3b82f6"><i data-lucide="info"></i></span>
@@ -22,6 +22,10 @@
     <div class="stat-card">
       <div><div class="stat-label">Open</div><div class="stat-value">{{ $sev['open'] ?? ($inc['by_status']['open'] ?? 0) }}</div></div>
       <span class="stat-icon" style="color:#ef4444"><i data-lucide="clock"></i></span>
+    </div>
+    <div class="stat-card">
+      <div><div class="stat-label">Assigned</div><div class="stat-value">{{ $inc['by_status']['assigned'] ?? 0 }}</div></div>
+      <span class="stat-icon" style="color:#3b82f6"><i data-lucide="clipboard-list"></i></span>
     </div>
     <div class="stat-card">
       <div><div class="stat-label">In Progress</div><div class="stat-value">{{ $inc['by_status']['in_progress'] ?? 0 }}</div></div>
@@ -64,7 +68,7 @@
     <h3 style="font-weight:600; color:#1e293b; margin-bottom:0.75rem;">Top Complaint Categories</h3>
     <div style="display:flex; align-items:flex-end; height:130px; gap:1.25rem;">
       @php $maxCat = max(1, (int) ($cat->max() ?? 1)); @endphp
-      @foreach(['Metering Issue' => 'dot-blue', 'Billing Issue' => 'dot-purple', 'Water Quality Concern' => 'dot-green', 'Operations Issue' => 'dot-coral'] as $label => $color)
+      @foreach(['Metering' => 'dot-blue', 'Billing' => 'dot-purple', 'Water Quality' => 'dot-green', 'Operations' => 'dot-coral'] as $label => $color)
         <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
           <div class="chart-bar" style="height:{{ max(20, ((($cat[$label] ?? 0) / $maxCat) * 100)) }}px; background:{{ $color === 'dot-blue' ? '#bfdbfe' : ($color === 'dot-purple' ? '#c4b5fd' : ($color === 'dot-green' ? '#a7f3d0' : '#fca5a5')) }};"></div>
           <span style="font-size:0.7rem; color:#64748b; margin-top:0.25rem;">{{ $label }} ({{ $cat[$label] ?? 0 }})</span>
