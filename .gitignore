@@ -24,6 +24,12 @@ ai-nlp/*.pyc
 ai-nlp/**/*.pyc
 ai-nlp/logs/*.log
 ai-nlp/.pytest_cache/
+fastapi_nlp_old/venv/
+fastapi_nlp_old/__pycache__/
+fastapi_nlp_old/**/__pycache__/
+fastapi_nlp_old/*.pyc
+fastapi_nlp_old/**/*.pyc
+fastapi_nlp_old/logs/*.log
 
 # === UI reference folder (excluded — we use Blade templates instead) ===
 website-ui-only/
