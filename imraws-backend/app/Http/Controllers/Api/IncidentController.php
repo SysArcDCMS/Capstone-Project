@@ -84,9 +84,9 @@ class IncidentController extends Controller
 
         $perPage = min((int) $request->query('per_page', 20), 100);
 
-        return response()->json([
-            'data' => $query->paginate($perPage),
-        ]);
+        return response()->json(
+            $this->paginated($query->paginate($perPage))
+        );
     }
 
     /**

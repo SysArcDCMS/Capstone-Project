@@ -52,7 +52,9 @@ class ReportController extends Controller
             $query->whereDate('submitted_at', '<=', $to);
         }
 
-        return response()->json(['data' => $query->paginate((int) $request->query('per_page', 50))]);
+        return response()->json(
+            $this->paginated($query->paginate((int) $request->query('per_page', 50)))
+        );
     }
 
     /**
@@ -73,6 +75,8 @@ class ReportController extends Controller
             $query->where('user_id', $userId);
         }
 
-        return response()->json(['data' => $query->paginate((int) $request->query('per_page', 50))]);
+        return response()->json(
+            $this->paginated($query->paginate((int) $request->query('per_page', 50)))
+        );
     }
 }

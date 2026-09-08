@@ -38,8 +38,11 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->count();
 
+        $envelope = $this->paginated($query->paginate((int) $request->query('per_page', 20)));
+
         return response()->json([
-            'data' => $query->paginate((int) $request->query('per_page', 20)),
+            'data' => $envelope['data'],
+            'meta' => $envelope['meta'],
             'unread_count' => $unreadCount,
         ]);
     }

@@ -63,9 +63,9 @@ class AssignmentController extends Controller
             $query->where('action_status', $status);
         }
 
-        return response()->json([
-            'data' => $query->paginate((int) $request->query('per_page', 20)),
-        ]);
+        return response()->json(
+            $this->paginated($query->paginate((int) $request->query('per_page', 20)))
+        );
     }
 
     /**
