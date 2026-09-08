@@ -66,7 +66,7 @@
             <td>{{ \Illuminate\Support\Str::limit($c->description, 50) }}</td>
             <td><span class="badge-pill {{ $badge }}">{{ ucwords(str_replace('_',' ',$c->status)) }}</span></td>
             <td><span class="badge-pill {{ $sevBadge }}">{{ $c->severity ?? '—' }}</span></td>
-            <td>{{ $tl && $tl->teamLeader ? 'Engr. '.$tl->teamLeader->full_name : '—' }}</td>
+            <td>{{ $tl && $tl->teamLeader ? $tl->teamLeader->full_name : '—' }}</td>
             <td>{{ $c->submitted_at?->diffForHumans() ?? '—' }}</td>
             <td>
               <a href="{{ route('complaints.show', $c->id) }}" class="action-icon" title="View"><i data-lucide="eye"></i></a>

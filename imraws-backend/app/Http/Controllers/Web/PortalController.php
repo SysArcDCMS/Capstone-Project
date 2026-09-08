@@ -170,10 +170,17 @@ class PortalController extends Controller
             'role'            => ['required', Rule::in(['customer','administrator','engineer','offsite_staff'])],
             'contact_no'      => ['nullable','string','max:32'],
             'address'         => ['nullable','string','max:500'],
-            'department_team' => ['nullable','string','max:64'],
+            'department_team' => [
+                'nullable',
+                Rule::in(['billing','metering','water_quality','operations']),
+                Rule::requiredIf(in_array($request->input('role'), ['offsite_staff', 'engineer'])),
+            ],
             'is_team_leader'  => ['boolean'],
         ]);
         $data['password'] = Hash::make($data['password']);
+        if (! in_array($data['role'], ['offsite_staff', 'engineer'])) {
+            $data['department_team'] = null;
+        }
         $user = User::create($data + ['is_active' => true]);
         AuditLog::record(auth()->id(), 'admin.create_user', 'users', $user->id, newValue: ['role' => $user->role]);
         return redirect()->route('users.index')->with('success', 'User created.');
@@ -193,9 +200,16 @@ class PortalController extends Controller
             'role'            => ['required', Rule::in(['customer','administrator','engineer','offsite_staff'])],
             'contact_no'      => ['nullable','string','max:32'],
             'address'         => ['nullable','string','max:500'],
-            'department_team' => ['nullable','string','max:64'],
+            'department_team' => [
+                'nullable',
+                Rule::in(['billing','metering','water_quality','operations']),
+                Rule::requiredIf(in_array($request->input('role'), ['offsite_staff', 'engineer'])),
+            ],
             'is_team_leader'  => ['boolean'],
         ]);
+        if (! in_array($data['role'], ['offsite_staff', 'engineer'])) {
+            $data['department_team'] = null;
+        }
         $old = $user->only(['full_name','role','department_team','is_team_leader','is_active']);
         $user->fill($data)->save();
         AuditLog::record(auth()->id(), 'admin.update_user', 'users', $user->id, oldValue: $old, newValue: $user->only(['full_name','role','department_team','is_team_leader']));

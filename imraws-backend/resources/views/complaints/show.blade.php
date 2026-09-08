@@ -23,7 +23,7 @@
     <h3 style="font-weight:600; color:#1e293b; margin-bottom:0.5rem;">Assignments & Feedback</h3>
     @forelse($incident->assignments as $a)
       <div style="border-top:1px solid #f1f5f9; padding:0.5rem 0;">
-        <strong>Engr. {{ $a->teamLeader->full_name ?? '—' }}</strong>
+        <strong>{{ $a->teamLeader->full_name ?? '—' }}</strong>
         <span class="badge-pill badge-gray" style="margin-left:0.5rem;">{{ $a->action_status }}</span>
         <small style="color:#94a3b8;">· {{ $a->assigned_at?->format('M d Y H:i') }}</small>
       </div>

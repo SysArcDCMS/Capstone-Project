@@ -33,6 +33,9 @@
         <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Department</th><th>Actions</th></tr>
       </thead>
       <tbody>
+        @php
+          $deptLabels = ['metering'=>'Metering','billing'=>'Billing','water_quality'=>'Water Quality','operations'=>'Operations'];
+        @endphp
         @forelse($users as $u)
           <tr>
             <td>{{ $u->full_name }} @if($u->is_team_leader)<small style="color:#2563eb;">(Team Leader)</small>@endif</td>
@@ -45,7 +48,7 @@
                 <span class="badge-pill badge-gray">Inactive</span>
               @endif
             </td>
-            <td>{{ $u->department_team ?? '—' }}</td>
+            <td>{{ $u->department_team ? ($deptLabels[$u->department_team] ?? $u->department_team) : '—' }}</td>
             <td>
               @if(auth()->user()->isAdministrator())
                 <a href="{{ route('users.edit', $u->id) }}" class="action-icon" title="Edit"><i data-lucide="pencil"></i></a>

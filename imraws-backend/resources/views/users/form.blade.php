@@ -46,7 +46,12 @@
         </div>
         <div>
           <label class="form-label">Department</label>
-          <input class="form-input" name="department_team" value="{{ old('department_team', $user->department_team ?? '') }}" placeholder="e.g., operations" />
+          <select class="form-input" name="department_team">
+            <option value="">No Department</option>
+            @foreach(['metering','billing','water_quality','operations'] as $dept)
+              <option value="{{ $dept }}" @selected(old('department_team', $user->department_team ?? '')===$dept)>{{ ucwords(str_replace('_',' ',$dept)) }}</option>
+            @endforeach
+          </select>
         </div>
         @if($user)
           <div>

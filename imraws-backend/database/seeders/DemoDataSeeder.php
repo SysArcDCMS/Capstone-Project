@@ -46,16 +46,17 @@ class DemoDataSeeder extends Seeder
             ]);
 
             $engineers = collect([
-                ['Axel Brion',  'engineer.axel@imraws.local'],
-                ['Kairo Zenith', 'engineer.kairo@imraws.local'],
-                ['Lior Solven', 'engineer.lior@imraws.local'],
-                ['Lyra Vantrex', 'engineer.lyra@imraws.local'],
+                ['Axel Brion',  'engineer.axel@imraws.local',   'billing'],
+                ['Kairo Zenith','engineer.kairo@imraws.local',  'metering'],
+                ['Lior Solven', 'engineer.lior@imraws.local',   'water_quality'],
+                ['Lyra Vantrex','engineer.lyra@imraws.local',   'operations'],
             ])->map(fn ($e) => User::create([
-                'full_name' => "Engr. {$e[0]}",
-                'email'     => $e[1],
-                'password'  => Hash::make('engineer123'),
-                'role'      => User::ROLE_ENGINEER,
-                'is_active' => true,
+                'full_name'       => "Engr. {$e[0]}",
+                'email'           => $e[1],
+                'password'        => Hash::make('engineer123'),
+                'role'            => User::ROLE_ENGINEER,
+                'department_team' => $e[2],
+                'is_active'       => true,
             ]));
 
             $teamLeaders = collect([
