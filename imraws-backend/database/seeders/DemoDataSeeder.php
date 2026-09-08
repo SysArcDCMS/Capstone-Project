@@ -99,13 +99,23 @@ class DemoDataSeeder extends Seeder
             }
 
             // ── Incidents (sample of the 18 in the UI mockup) ──────────
+            // Categories are the canonical ai-nlp labels (VAL-CATEGORIES in
+            // ai-nlp/app/services/retrain_service.py) so dept lookup, filters
+            // and the dashboard chart all stay consistent.
+            $deptMap = [
+                'Billing'       => 'billing',
+                'Water Quality' => 'water_quality',
+                'Metering'      => 'metering',
+                'Operations'    => 'operations',
+            ];
+
             $samples = [
-                ['Robert Johnson', 'Metering',  'Meter not working',                                 'Metering Issue',     'High',     1.0],
-                ['Lisa Anderson',  'Billing',   'Duplicate charge received',                          'Billing Issue',      'Low',      0.3],
-                ['David Wilson',   'Operations','Dirty water coming out (re-opened)',                'Water Quality Concern', 'High', 1.4],
-                ['Anna Thompson',  'Operations','Low water pressure',                                'Operations Issue',   'Medium',   0.6],
-                ['Robert Johnson', 'Billing',   'Billing overcharge',                                'Billing Issue',      'Medium',   0.5],
-                ['Lisa Anderson',  'Operations','Water quality concern',                             'Water Quality Concern', 'High',  1.1],
+                ['Robert Johnson', 'Metering',      'Meter not working',                 'Metering',      'High',   1.0],
+                ['Lisa Anderson',  'Billing',       'Duplicate charge received',         'Billing',       'Low',    0.3],
+                ['David Wilson',   'Operations',    'Dirty water coming out (re-opened)','Water Quality', 'High',   1.4],
+                ['Anna Thompson',  'Operations',    'Low water pressure',                'Operations',    'Medium', 0.6],
+                ['Robert Johnson', 'Billing',       'Billing overcharge',                'Billing',       'Medium', 0.5],
+                ['Lisa Anderson',  'Operations',    'Water quality concern',             'Water Quality', 'High',   1.1],
             ];
 
             $incidentIds = [];
@@ -127,7 +137,7 @@ class DemoDataSeeder extends Seeder
                 $incidentIds[] = $incident->id;
 
                 // Auto-assign to matching team leader
-                $tl = $teamLeaders->firstWhere('department_team', strtolower(str_replace(' Issue','',str_replace(' Concern','',$category))));
+                $tl = $teamLeaders->firstWhere('department_team', $deptMap[$category] ?? strtolower($category));
                 if ($tl) {
                     Assignment::create([
                         'incident_id'       => $incident->id,
