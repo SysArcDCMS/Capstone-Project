@@ -1,26 +1,23 @@
-# Capstone Document — Sync with Actual System (2026-09-08)
+# Capstone Document — Sync with Actual System (2026-09-08, updated 2026-09-09)
 
 Source: `IMRAWS-NLP-CAPSTONE-DOCUMENT-MAINFOR-CHECKING-ONLY (1).docx`
 Output: `IMRAWS-NLP-CAPSTONE-DOCUMENT-MAINFOR-CHECKING-ONLY (1) - UPDATED.docx`
 Backup of original: `IMRAWS-NLP-CAPSTONE-DOCUMENT-MAINFOR-CHECKING-ONLY (1) - ORIGINAL BACKUP.docx`
 
-65 paragraph-level text edits applied to `word/document.xml`, matching the document to the
-implemented system. The embedded diagrams (ERD, DFDs, architecture figure) are images and
-were NOT changed — redraw them using the corrected specs below.
+47 paragraph-level text edits applied to `word/document.xml`. The embedded diagrams (ERD, DFDs,
+architecture figure) are images and were NOT changed — redraw them using the corrected specs below.
+
+> **Deployment section policy (2026-09-09):** the current system is under development and runs
+> locally, but per the researchers' decision the document KEEPS the original production/cloud
+> architecture narrative (Oracle Cloud VPS + Render, HTTPS, serverless, Android/iOS push
+> notifications). Deployment wording was reverted to the original and is intentionally NOT a
+> description of the current local setup.
 
 ## Edits applied
 
-### Deployment / platform (was "proposed cloud", now as-built local)
-- Oracle Cloud VPS / Render hosting -> local development PC (PostgreSQL + Laravel + FastAPI)
-- HTTPS -> HTTP on the local network during development (JWT auth unchanged)
-- Serverless -> standalone processes on the local network
-- Android or iOS -> Android only (Flutter)
-- Push/FCM notifications -> in-app notification center (DB rows, periodic sync) — resolved DFD
-  5.9/5.10, 3.8 wording; customer-facing "push notifications" claims reworded
-
 ### Feature claims corrected to implemented behavior
 - Admin "configures routing rules / department categories" -> views the predefined
-  category→department routing mappings (hardcoded in AiRoutingService)
+  category->department routing mappings (hardcoded in AiRoutingService)
 - Engineer "manages availability of Offsite Staff" -> views availability; staff self-manage
 - HITL feedback "retrains the NLP model" -> logged to feedback table as the training-feedback
   source for periodic retraining (note: Laravel -> NLP retrain loop is NOT wired end-to-end yet;
@@ -49,7 +46,7 @@ were NOT changed — redraw them using the corrected specs below.
 - SYSTEM ARHCITECHTURE -> SYSTEM ARCHITECTURE
 - DFD 2.11 spelling error: stores incident in D1 (Users) -> D2 (Incidents)
 - DFD 6.3 source: D1 (Incidents) -> D2 (Incidents)
-- DFD 5.9 data store: D6 (Notification) -> D6 (Notifications)
+- DFD 5.9 data store: D6 (Notification) -> D6 (Notifications) only (push wording restored)
 - Chapter 3 figure refs: "as shown in Figure 1" -> Figure 10; "Figure 10 follows..." -> Figure 11;
   ERD caption Figure 12 -> Figure 13 (Use Case kept as Figure 12)
 - Offsite Staff login platform: web portal -> mobile application
