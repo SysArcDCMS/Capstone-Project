@@ -118,3 +118,25 @@ Backup: `IMRAWS-NLP-CAPSTONE-9.9.26 - ORIGINAL BACKUP.docx`.
     acknowledgement of sources.
 - TOC: 3 manual `TOCHeading` rows appended after "Likert Scale74" —
   3.6 (p. 77), 3.7 (p. 78), 3.8 (p. 80). Page numbers are ESTIMATES — verify/update in Word.
+
+## Data Dictionary — `IMRAWS-NLP-CAPSTONE-9.9.26.docx` (2026-09-09)
+
+Added a "Data Dictionary" section as the closing element of 3.4 Project Design (after the ERD
+narrative, before the "3.5Project Evaluation" heading), matching the schema in
+`imraws-backend/database/migrations`. Backup:
+`IMRAWS-NLP-CAPSTONE-9.9.26 - PRE-DATA-DICTIONARY BACKUP.docx`.
+
+- Bold heading "Data Dictionary" + intro paragraph.
+- 8 data-dictionary tables, one per core table, each with a bold caption and 4 columns
+  (Field Name | Data Type | Constraint / Key | Description), `TableGrid`, TNR 12pt, same cell
+  format as Table 3.1:
+  - Table 3.2 tbl_users (13 fields) — role enum customer/administrator/engineer/offsite_staff
+  - Table 3.3 tbl_incidents (14) — category, severity, composite_score, status + FK cascade set
+  - Table 3.4 tbl_assignments (11) — action_status enum (member list) + enginee review FK
+  - Table 3.5 tbl_notifications (9)
+  - Table 3.6 tbl_availability (7) — staff_id UNIQUE, status enum with on_break
+  - Table 3.7 tbl_feedback (19) — action_taken enum, used_for_training
+  - Table 3.8 tbl_audit_logs (8) — old_value/new_value json
+  - Table 3.9 tbl_incident_attachments (10) — file_path, file_size, caption
+- TOC: 1 manual `TOCHeading` row "Data Dictionary" (p. 70 ESTIMATE — verify/update in Word)
+  inserted after "E.R. Diagram of the Proposed System67". Tables 4 -> 12; TOC rows 45 -> 46.
