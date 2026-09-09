@@ -92,3 +92,29 @@ reject (with reason) / correct. Engineer adjudication: approve / override / reas
   adjudication so tbl_feedback corrections actually reach the FastAPI retraining pipeline.
 - Optional: engineer "manage availability" endpoint, admin routing-rules UI, PDF export,
   satisfaction indicators — currently documented as absent.
+
+## Chapter 3 additions — `IMRAWS-NLP-CAPSTONE-9.9.26.docx` (2026-09-09)
+
+Per the adviser template ("ADDITIONAL TO CHAPTER 3"), appended to the end of Chapter 3 in the
+9.9.26 working export. Headings match the document's existing convention (e.g. "3.6Roles and
+Responsibilities ", number + tab + title). Manual TOC updated.
+Backup: `IMRAWS-NLP-CAPSTONE-9.9.26 - ORIGINAL BACKUP.docx`.
+
+- 3.6 Roles and Responsibilities
+  - Intro + 10 functional roles with duties across the Agile SDLC: Project Manager; Systems
+    Analyst; Database Designer; Backend Developer (Laravel); Mobile Developer (Flutter); Web
+    Portal Developer; AI and NLP Developer (Python/FastAPI); Quality Assurance Tester;
+    Statistical Analyst; Capstone Adviser.
+- 3.7 Evaluation Procedure
+  - Intro + 7-step protocol: prototype/evaluation-material preparation (ISO/IEC 25010 Project
+    Evaluation Tool); orientation of the three (3) College of Computer Studies faculty
+    panelists; end-to-end demonstration/walkthrough; hands-on evaluation; questionnaire
+    administration (5-point Likert); weighted-mean scoring (WM formula in 3.5) mapped to the
+    interpretation table; pass criterion overall weighted mean >= 3.41 ("Agree").
+- 3.8 Ethical Standards and Considerations
+  - Sample introduction paragraph (verbatim from the adviser's template) + 6 standards:
+    informed consent/voluntary participation; privacy and confidentiality (RBAC-limited);
+    Data Privacy Act of 2012 (RA 10173) compliance; non-maleficence; integrity of findings;
+    acknowledgement of sources.
+- TOC: 3 manual `TOCHeading` rows appended after "Likert Scale74" —
+  3.6 (p. 77), 3.7 (p. 78), 3.8 (p. 80). Page numbers are ESTIMATES — verify/update in Word.
