@@ -26,7 +26,7 @@ class AppNotification {
       message: json['message']?.toString() ?? '',
       isRead: json['is_read'] == true || json['is_read'] == 1,
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
+          ? DateTime.tryParse(json['created_at'].toString())?.toLocal()
           : null,
       incident: json['incident'] is Map<String, dynamic>
           ? IncidentSummary.fromJson(json['incident'])

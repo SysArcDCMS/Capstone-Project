@@ -35,7 +35,7 @@ class Assignment {
       actionStatus: json['action_status']?.toString(),
       resolutionNotes: json['resolution_notes']?.toString(),
       assignedAt: json['assigned_at'] != null
-          ? DateTime.tryParse(json['assigned_at'].toString())
+          ? DateTime.tryParse(json['assigned_at'].toString())?.toLocal()
           : null,
       incident: json['incident'] is Map<String, dynamic>
           ? Incident.fromJson(json['incident'])

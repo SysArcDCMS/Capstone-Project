@@ -45,10 +45,10 @@ class Incident {
       status: json['status']?.toString(),
       resolutionNotes: json['resolution_notes']?.toString(),
       submittedAt: json['submitted_at'] != null
-          ? DateTime.tryParse(json['submitted_at'].toString())
+          ? DateTime.tryParse(json['submitted_at'].toString())?.toLocal()
           : null,
       resolvedAt: json['resolved_at'] != null
-          ? DateTime.tryParse(json['resolved_at'].toString())
+          ? DateTime.tryParse(json['resolved_at'].toString())?.toLocal()
           : null,
       customer: json['customer'] is Map<String, dynamic>
           ? IncidentCustomer.fromJson(json['customer'])
