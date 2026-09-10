@@ -166,3 +166,20 @@ Verified against the running API: incident #20 (Billing) produced 7 rows — bot
 team leader (7) notified at receive/assign, in_progress, and resolved.
 
 Flutter app unchanged (already polls `GET /api/notifications`).
+
+## Timezone: app UTC -> Asia/Manila + existing data shifted +8h (2026-09-10)
+
+- `imraws-backend/config/app.php` `'timezone'` `'UTC'` -> `'Asia/Manila'`: Laravel `now()` now
+  writes Manila wall time into timestamp columns.
+- Existing rows (stored as UTC wall-clock digits) shifted **+8 hours** across ALL timestamp
+  columns in the 8 tables (users, tbl_incidents, tbl_assignments, tbl_notifications,
+  tbl_availability, tbl_feedback, tbl_audit_logs, tbl_incident_attachments) so the stored values
+  now equal Manila wall time. Applied in one transaction (forward + reverse `-8h` scripts held in
+  temp dir, replay on request). Examples: incident #20 `submitted_at` 05:56:39 -> 13:56:39 (the
+  actual 1:56 PM submit); notifications for #20 05:56:5x -> 13:56:5x.
+- Verified live: new complaint #23 stored `submitted_at = 2026-09-10 14:31:21` (Manila), and the
+  API date serialization is ISO-8601 UTC-instant (`06:31:21Z` == 14:31:21 +08) which Flutter's
+  `DateTime.parse` resolves to the correct device-local wall time — no Flutter changes needed.
+- Caveat: response timestamps carry a `Z`, so the app renders in the DEVICE's timezone. If a
+  device/emulator is set to UTC it will continue to show the UTC hour; set the phone/emulator to
+  Asia/Manila (+08) to see Manila wall time.
