@@ -32,6 +32,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Site-styled pagination (no Tailwind/Bootstrap dependency).
-        Paginator::defaultView('pagination.imraws');
+        Paginator::defaultView('vendor.pagination.imraws');
     }
 }
