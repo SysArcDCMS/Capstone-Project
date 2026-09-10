@@ -187,3 +187,14 @@ Flutter app unchanged (already polls `GET /api/notifications`).
   notification `createdAt`, assignment `assignedAt`, attachment `createdAt`) now call `.toLocal()`
   so the app renders the server's UTC-instant in the device-local wall clock. `flutter analyze`
   clean. No reinstall needed — rebuild/restart the app.
+
+## Repo hygiene: removal + folder renames (2026-09-10)
+
+- Removed `fastapi_nlp_old/` (old duplicate of the NLP service; superseded by `ai-nlp/`) and the
+  capstone `.docx` working copies from the tracked repo — GitHub now mirrors only current files.
+  `HOW TO RUN THE SYSTEM.txt` added as a tracked run guide.
+- Renamed folders so the repo layout matches the deployed system:
+  - `imraws-backend/` -> `imraws-backend-website/` (Laravel backend + Blade web portal)
+  - `mobile_app_v2_bak/` -> `imraws-mobile/` (Flutter mobile app)
+- Updated `.gitignore`, `README.md`, `ai-nlp/SETUP.md`, backend `SETUP.md` + `docs/FLUTTER_API_SPEC.md`
+  to reference the new names. Backend dev server kept stopped after the move.
