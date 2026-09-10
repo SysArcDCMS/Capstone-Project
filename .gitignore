@@ -1,18 +1,18 @@
 # === Laravel backend ===
-imraws-backend/vendor/
-imraws-backend/node_modules/
-imraws-backend/.env
-imraws-backend/.env.backup
-imraws-backend/storage/logs/*.log
-imraws-backend/storage/framework/cache/
-imraws-backend/storage/framework/sessions/
-imraws-backend/storage/framework/views/
-imraws-backend/public/storage/
-imraws-backend/database/database.sqlite
-imraws-backend/bootstrap/cache/*.php
-!imraws-backend/bootstrap/cache/.gitkeep
-!imraws-backend/storage/.gitkeep
-!imraws-backend/storage/logs/.gitkeep
+imraws-backend-website/vendor/
+imraws-backend-website/node_modules/
+imraws-backend-website/.env
+imraws-backend-website/.env.backup
+imraws-backend-website/storage/logs/*.log
+imraws-backend-website/storage/framework/cache/
+imraws-backend-website/storage/framework/sessions/
+imraws-backend-website/storage/framework/views/
+imraws-backend-website/public/storage/
+imraws-backend-website/database/database.sqlite
+imraws-backend-website/bootstrap/cache/*.php
+!imraws-backend-website/bootstrap/cache/.gitkeep
+!imraws-backend-website/storage/.gitkeep
+!imraws-backend-website/storage/logs/.gitkeep
 
 # === Python NLP service ===
 ai-nlp/ai_nlp_env/
@@ -36,8 +36,8 @@ website-ui-only/
 !website-ui-only/.gitkeep
 
 # === User-uploaded attachments (regenerated per env) ===
-imraws-backend/storage/app/public/attachments/*
-!imraws-backend/storage/app/public/attachments/.gitkeep
+imraws-backend-website/storage/app/public/attachments/*
+!imraws-backend-website/storage/app/public/attachments/.gitkeep
 
 # === IDE / OS ===
 .vscode/

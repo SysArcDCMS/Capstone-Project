@@ -232,7 +232,7 @@ The repo has three folders:
 | Folder | Purpose |
 |---|---|
 | `ai-nlp/` | FastAPI NLP microservice |
-| `imraws-backend/` | Laravel backend + Blade web portal |
+| `imraws-backend-website/` | Laravel backend + Blade web portal |
 | `website-ui-only/` | Reference design (gitignored — gitkeep only) |
 
 ---
@@ -240,7 +240,7 @@ The repo has three folders:
 ## 8. Install PHP Dependencies
 
 ```powershell
-cd imraws-backend
+cd imraws-backend-website
 composer install
 ```
 
@@ -417,7 +417,7 @@ Once both the database and the NLP service are running, start Laravel.
 ### 13a. Loopback binding (same PC testing)
 
 ```powershell
-cd imraws-backend
+cd imraws-backend-website
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 

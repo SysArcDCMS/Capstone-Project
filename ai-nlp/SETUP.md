@@ -2,7 +2,7 @@
 
 Short setup guide for the FastAPI NLP microservice that powers text
 classification + sentiment analysis + severity scoring. This service is
-consumed by the Laravel backend (see `../imraws-backend/SETUP.md`).
+consumed by the Laravel backend (see `../imraws-backend-website/SETUP.md`).
 
 The full Laravel setup guide already covers prerequisites (PHP, XAMPP,
 PostgreSQL). This doc only covers the Python side.
@@ -198,7 +198,7 @@ docker run -d -p 8001:8001 --name imraws-nlp imraws-nlp:latest
 ## Troubleshooting
 
 For Laravel-related gotchas (port conflicts, firewall, etc.), see
-`../imraws-backend/SETUP.md` §16. NLP-specific issues:
+`../imraws-backend-website/SETUP.md` §16. NLP-specific issues:
 
 ### RoBERTa download times out
 
@@ -221,7 +221,7 @@ Fix: `cd ai-nlp` before running.
 
 Fix: Edit `.env` to use a different port; also update
 `NLP_SERVICE_URL=http://127.0.0.1:<new-port>` in
-`../imraws-backend/.env` so Laravel can find it.
+`../imraws-backend-website/.env` so Laravel can find it.
 
 ---
 
@@ -240,4 +240,4 @@ composite_score = sentiment_score
 The Laravel backend stores this on `tbl_incidents.composite_score` so
 the panel can verify the calculation. See
 `app/core/models/severity.py:99-122` in this service and
-`imraws-backend/SETUP.md` Appendix A for the variance log.
+`imraws-backend-website/SETUP.md` Appendix A for the variance log.

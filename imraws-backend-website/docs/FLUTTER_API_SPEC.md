@@ -5,7 +5,7 @@
 This document defines the exact request/response shapes that the Flutter mobile
 application MUST conform to when consuming the Laravel backend. It is derived
 from the capstone document (Section 3.4 - Application Layer for Customer +
-Offsite Staff) and the Laravel controllers in `imraws-backend/app/Http/Controllers/Api/`.
+Offsite Staff) and the Laravel controllers in `imraws-backend-website/app/Http/Controllers/Api/`.
 
 The Flutter app is the **consumer** of these endpoints. The Laravel backend
 is the **provider**. All endpoints use JWT Bearer auth from the `auth:api`
@@ -545,7 +545,7 @@ The following are explicitly handled by the **Laravel web portal**, not Flutter:
 - Reports / dashboard analytics
 - Audit log inspection
 
-See `imraws-backend/routes/web.php` for the web portal routes.
+See `imraws-backend-website/routes/web.php` for the web portal routes.
 
 ---
 

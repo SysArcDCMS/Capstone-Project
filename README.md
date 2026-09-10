@@ -24,7 +24,7 @@ imraws/
 │   ├── Dockerfile         Container build (for production)
 │   └── requirements.txt   Python dependencies
 │
-├── imraws-backend/        Laravel 12 backend + Blade web portal
+├── imraws-backend-website/        Laravel 12 backend + Blade web portal
 │   ├── app/               PHP source (controllers, models, services)
 │   ├── database/          Migrations + seeders
 │   ├── docs/              FLUTTER_API_SPEC.md + other internals
@@ -87,7 +87,7 @@ Wait for `Application startup complete.` (30-60s first run).
 ### Terminal 2 - Laravel Backend
 
 ```powershell
-cd imraws-backend
+cd imraws-backend-website
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
@@ -110,11 +110,11 @@ If you are installing from scratch on a new Windows machine:
 
 | Component | Guide |
 |---|---|
-| PHP 8.2 (XAMPP) | see [§1 of `imraws-backend/SETUP.md`](imraws-backend/SETUP.md#1-install-php-82-via-xampp) |
-| Postgres PHP extensions | see [§2](imraws-backend/SETUP.md#2-enable-postgres-php-extensions) |
-| Composer | see [§3](imraws-backend/SETUP.md#3-install-composer) |
-| PostgreSQL 16 | see [§4-6](imraws-backend/SETUP.md#4-install-postgresql-16) |
-| Laravel (full) | [`imraws-backend/SETUP.md`](imraws-backend/SETUP.md) |
+| PHP 8.2 (XAMPP) | see [§1 of `imraws-backend-website/SETUP.md`](imraws-backend-website/SETUP.md#1-install-php-82-via-xampp) |
+| Postgres PHP extensions | see [§2](imraws-backend-website/SETUP.md#2-enable-postgres-php-extensions) |
+| Composer | see [§3](imraws-backend-website/SETUP.md#3-install-composer) |
+| PostgreSQL 16 | see [§4-6](imraws-backend-website/SETUP.md#4-install-postgresql-16) |
+| Laravel (full) | [`imraws-backend-website/SETUP.md`](imraws-backend-website/SETUP.md) |
 | NLP microservice | [`ai-nlp/SETUP.md`](ai-nlp/SETUP.md) |
 
 ---
@@ -124,11 +124,11 @@ If you are installing from scratch on a new Windows machine:
 | Doc | Purpose |
 |---|---|
 | `IMRAWS-NLP-CAPSTONE-DOCUMENT-...docx` | **Approved capstone document** (read this for system design intent) |
-| `imraws-backend/SETUP.md` | Full Laravel + Postgres + PHP + Composer installation walkthrough |
+| `imraws-backend-website/SETUP.md` | Full Laravel + Postgres + PHP + Composer installation walkthrough |
 | `ai-nlp/SETUP.md` | NLP service installation (short) |
-| `imraws-backend/docs/FLUTTER_API_SPEC.md` | Frozen API spec for the Flutter mobile app (parked, not implemented) |
-| `imraws-backend/SETUP.md` §15 | API quick reference (all endpoints) |
-| `imraws-backend/SETUP.md` §16 | Common gotchas |
+| `imraws-backend-website/docs/FLUTTER_API_SPEC.md` | Frozen API spec for the Flutter mobile app (parked, not implemented) |
+| `imraws-backend-website/SETUP.md` §15 | API quick reference (all endpoints) |
+| `imraws-backend-website/SETUP.md` §16 | Common gotchas |
 
 ---
 
