@@ -1,3 +1,0 @@
-timestamp,complaint_text,original_category,corrected_category,original_severity,corrected_severity,final_decision,engineer_id,source,used_for_training
-2026-04-28T17:26:21.984569,Walang tubig sa amin since kahapon,Operations,Billing,High,Medium,,,hitl,True
-2026-09-02T10:20:09.940681,Hindi ko maintindihan ang aking bill. Ang reading sa aming water meter,Metering,Billing,High,High,,1.0,hitl,True

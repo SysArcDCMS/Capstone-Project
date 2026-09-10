@@ -1,0 +1,20 @@
+ - - - - - - - FOR RUNNING THE MOBILE APP - - - - - - -
+
+dart run tool/run.dart
+
+
+ - - - - - FOR RUNNING THE WEBSITE-BACKEND - - - - - -
+
+cd ..\imraws-backend-website; php artisan serve --host=0.0.0.0 --port=8000
+
+
+ - - - - - - - FOR RUNNING THE AI-NLP  - - - - - - -
+
+cd ..\ai-nlp; ai_nlp_env\Scripts\python -m app.main
+
+ - - - - - - - Open Code Session Id  - - - - - - -
+
+opencode -s ses_f7f26880dffeJgr4qKRR2FvKtu
+
+
+
