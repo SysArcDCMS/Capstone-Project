@@ -183,3 +183,7 @@ Flutter app unchanged (already polls `GET /api/notifications`).
 - Caveat: response timestamps carry a `Z`, so the app renders in the DEVICE's timezone. If a
   device/emulator is set to UTC it will continue to show the UTC hour; set the phone/emulator to
   Asia/Manila (+08) to see Manila wall time.
+- Flutter fix: 5 timestamp parse sites in the models (incident `submittedAt`/`resolvedAt`,
+  notification `createdAt`, assignment `assignedAt`, attachment `createdAt`) now call `.toLocal()`
+  so the app renders the server's UTC-instant in the device-local wall clock. `flutter analyze`
+  clean. No reinstall needed — rebuild/restart the app.
