@@ -140,3 +140,29 @@ narrative, before the "3.5Project Evaluation" heading), matching the schema in
   - Table 3.9 tbl_incident_attachments (10) — file_path, file_size, caption
 - TOC: 1 manual `TOCHeading` row "Data Dictionary" (p. 70 ESTIMATE — verify/update in Word)
   inserted after "E.R. Diagram of the Proposed System67". Tables 4 -> 12; TOC rows 45 -> 46.
+
+## Notifications now cover the full incident lifecycle (2026-09-10)
+
+Previously `tbl_notifications` only captured: TL *assigned* (Step 3.8 in AiRoutingService),
+engineer *flagged* on reject/correct, and customer *adjudicated* (final decision). The customer
+was never notified on submit/assign/in-progress/resolved, and complaints that could not be routed
+(NLP returned no category, or no available leader) produced **zero** notifications, leaving the
+mobile "NOTIFICATIONS" screen empty. Fixed in `imraws-backend` (DFD 5.9 "Generate Customer
+Notification" now fully implemented):
+
+- `IncidentController::store` — customer notification "Your complaint #N has been received and is
+  being processed." on every submission; when auto-route fails, active engineers are notified
+  ("Incident #N is unclassified and needs manual routing") so a human in the loop classifies it.
+- `AiRoutingService::createAssignment` — customer notification on assignment to a team leader.
+- `IncidentController::updateStatus` — customer notification per new status (in_progress /
+  resolved / rejected with reason) plus a notification to the currently-assigned team leader
+  ("Incident #N status changed to ...").
+- `AssignmentController::teamLeaderAction` — customer notified on accept / reject (with reason) /
+  correct.
+- `AssignmentController::engineerAdjudicate` — existing customer notification kept; assigned team
+  leader is now also notified of the engineer's final decision.
+
+Verified against the running API: incident #20 (Billing) produced 7 rows — both customer (10) and
+team leader (7) notified at receive/assign, in_progress, and resolved.
+
+Flutter app unchanged (already polls `GET /api/notifications`).
