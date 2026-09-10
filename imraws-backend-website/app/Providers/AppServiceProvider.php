@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\AiRoutingService;
 use App\Services\NlpService;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Site-styled pagination (no Tailwind/Bootstrap dependency).
+        Paginator::defaultView('pagination.imraws');
     }
 }
