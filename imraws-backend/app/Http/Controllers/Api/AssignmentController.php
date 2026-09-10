@@ -209,6 +209,25 @@ class AssignmentController extends Controller
             }
         }
 
+        // DFD 5.9 — notify the customer of the team leader's decision.
+        if ($incident->customer_id) {
+            $customerMessage = match ($data['action']) {
+                Feedback::ACTION_ACCEPT  => "Our team has accepted your complaint #{$incident->id} and is working on it.",
+                Feedback::ACTION_CORRECT => "Your complaint #{$incident->id} was updated by the team leader.",
+                Feedback::ACTION_REJECT  => 'Your complaint #'.$incident->id.' was rejected'
+                    . ($data['rejection_reason'] ? ": {$data['rejection_reason']}" : '.'),
+                default => "Your complaint #{$incident->id} has been updated.",
+            };
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $incident->customer_id,
+                'message'     => $customerMessage,
+                'is_read'     => false,
+                'created_by'  => $user->id,
+                'updated_by'  => $user->id,
+            ]);
+        }
+
         return response()->json([
             'data' => [
                 'assignment' => $assignment->fresh(),
@@ -360,6 +379,18 @@ class AssignmentController extends Controller
             'created_by'  => $user->id,
             'updated_by'  => $user->id,
         ]);
+
+        // Notify the assigned team leader of the final decision.
+        if ($assignment->team_leader_id) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $assignment->team_leader_id,
+                'message'     => "Engineer decision on incident #{$incident->id}: {$data['mode']}.",
+                'is_read'     => false,
+                'created_by'  => $user->id,
+                'updated_by'  => $user->id,
+            ]);
+        }
 
         return response()->json([
             'data' => [

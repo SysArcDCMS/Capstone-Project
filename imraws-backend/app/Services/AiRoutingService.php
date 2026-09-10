@@ -142,6 +142,18 @@ class AiRoutingService
             'updated_by'  => auth()->id(),
         ]);
 
+        // DFD 5.9 — notify the customer that their complaint is being handled.
+        if ($incident->customer_id) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $incident->customer_id,
+                'message'     => "Your complaint #{$incident->id} has been assigned to a team leader.",
+                'is_read'     => false,
+                'created_by'  => auth()->id(),
+                'updated_by'  => auth()->id(),
+            ]);
+        }
+
         return $assignment;
     }
 }

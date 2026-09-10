@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Incident;
+use App\Models\Notification;
 use App\Models\User;
 use App\Services\AiRoutingService;
 use App\Services\NlpService;
@@ -180,6 +181,32 @@ class IncidentController extends Controller
             );
         }
 
+        // DFD 5.9 — Generate Customer Notification (complaint received).
+        Notification::create([
+            'incident_id' => $incident->id,
+            'user_id'     => $customerId,
+            'message'     => "Your complaint #{$incident->id} has been received and is being processed.",
+            'is_read'     => false,
+            'created_by'  => $user->id,
+            'updated_by'  => $user->id,
+        ]);
+
+        // HITL — no automated route was found (unclassified or no available leader):
+        // alert the engineers so a human classifies and routes the complaint.
+        if (! $assignment) {
+            $engineers = User::where('role', User::ROLE_ENGINEER)->where('is_active', true)->pluck('id');
+            foreach ($engineers as $engineerId) {
+                Notification::create([
+                    'incident_id' => $incident->id,
+                    'user_id'     => $engineerId,
+                    'message'     => "Incident #{$incident->id} is unclassified and needs manual routing.",
+                    'is_read'     => false,
+                    'created_by'  => $user->id,
+                    'updated_by'  => $user->id,
+                ]);
+            }
+        }
+
         return response()->json([
             'data' => $incident->load('customer:id,full_name,email'),
             'analysis' => $analysis,
@@ -261,6 +288,37 @@ class IncidentController extends Controller
             oldValue:  $old,
             newValue:  $incident->only(['status', 'resolved_at']),
         );
+
+        // DFD 5.9 — Notify the customer of the new status.
+        if ($incident->customer_id) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $incident->customer_id,
+                'message'     => match ($incident->status) {
+                    Incident::STATUS_IN_PROGRESS => "Your complaint #{$incident->id} is now being worked on.",
+                    Incident::STATUS_RESOLVED    => "Your complaint #{$incident->id} has been resolved.",
+                    Incident::STATUS_REJECTED    => 'Your complaint #'.$incident->id.' could not be processed'
+                        . ($data['resolution_notes'] ? ": {$data['resolution_notes']}" : '.'),
+                    default => "Your complaint #{$incident->id} status: {$incident->status}.",
+                },
+                'is_read'     => false,
+                'created_by'  => $user->id,
+                'updated_by'  => $user->id,
+            ]);
+        }
+
+        // Notify the assigned team leader of the status change.
+        $currentLeader = $incident->currentAssignment()?->team_leader_id;
+        if ($currentLeader) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $currentLeader,
+                'message'     => "Incident #{$incident->id} status changed to {$incident->status}.",
+                'is_read'     => false,
+                'created_by'  => $user->id,
+                'updated_by'  => $user->id,
+            ]);
+        }
 
         return response()->json(['data' => $incident->fresh()]);
     }
