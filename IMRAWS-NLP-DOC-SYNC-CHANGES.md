@@ -198,3 +198,43 @@ Flutter app unchanged (already polls `GET /api/notifications`).
   - `mobile_app_v2_bak/` -> `imraws-mobile/` (Flutter mobile app)
 - Updated `.gitignore`, `README.md`, `ai-nlp/SETUP.md`, backend `SETUP.md` + `docs/FLUTTER_API_SPEC.md`
   to reference the new names. Backend dev server kept stopped after the move.
+
+## Web portal: categories CRUD, settings tabs, reports polish, role-aware sidebar (2026-09-12)
+
+Complaint categories:
+- Managed from a real `tbl_categories` table (9th core table — extends the ERD/data-dictionary list):
+  migration `2026_09_12_000001_create_tbl_categories_table.php`, model `App\Models\Category`, seeded
+  with the 4 canonical classifier labels (Billing, Water Quality, Metering, Operations) plus display
+  labels, colors, and descriptions that match the previous hardcoded cards.
+- Categories screen now supports Add / Edit / Delete / Remove (hide) / Restore with per-action audit
+  logs (`admin.create_category`, `admin.update_category`, `admin.delete_category`,
+  `admin.hide_category`, `admin.restore_category`). Hard Delete is blocked while any incident still
+  references the category — Remove (deactivate) is the safe path.
+- `AiRoutingService` still maps the 4 trained classes to departments statically (DFD 3.2); categories
+  added through the screen that are unknown to the classifier fall through to the existing
+  no-leader/unrouted (HITL) path, so NLP behavior is unchanged.
+
+Settings screen (previously Profile-only):
+- Notification tab — the signed-in user's `tbl_notifications` inbox (read/unread, mark-all-read,
+  per-item toggle).
+- Security tab — change password (current-password check, `Password::min(8)`, audit-logged as
+  `self.change_password`).
+- Email tab — change email (current-password check, unique validator, audit-logged as
+  `self.change_email`).
+- System tab — ADMIN-ONLY: NLP service health (`GET /api/v1/health`), severity configuration
+  (`GET /api/v1/severity-config`), runtime versions (PHP/Laravel/PostgreSQL/env), and a manual
+  **Retrain AI** button calling `POST /api/v1/retrain` (background, audit-logged as
+  `admin.retrain_ai`). This now wires the previously manual-only retraining trigger end-to-end; the
+  automated post-correction retrain loop remains not automatic (as before).
+- All panels render in the DOM with CSS toggle; the System tab and its data are never rendered for
+  non-administrators.
+
+Other:
+- Reports & Analytics screen restyled to match dashboard conventions (stat-icon KPI cards, styled
+  table headers via `.table-wrap`, equal-height cards) — no data changes.
+- Sidebar brand and navigation now depend on the signed-in role (`roleLabel()` on User):
+  Administrator / Engineer / Staff branding; Categories admin-only; Users + Reports admin/engineer;
+  Assignments unchanged (admin/engineer); Dashboard + Complaints + Settings for all.
+- Migration bookkeeping: `2026_09_08_add_updated_by_to_users` was already reflected in the live DB
+  (column existed) but missing from the `migrations` table — registered as run so `migrate` resumes
+  cleanly; the new `tbl_categories` migration was then applied.
