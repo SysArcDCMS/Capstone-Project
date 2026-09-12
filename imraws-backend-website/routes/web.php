@@ -32,6 +32,10 @@ Route::middleware('auth:web')->group(function () {
 
     // Categories
     Route::get('/categories', [PortalController::class, 'categories'])->name('categories.index');
+    Route::post('/categories', [PortalController::class, 'categoryStore'])->name('categories.store');
+    Route::patch('/categories/{id}', [PortalController::class, 'categoryUpdate'])->whereNumber('id')->name('categories.update');
+    Route::delete('/categories/{id}', [PortalController::class, 'categoryDestroy'])->whereNumber('id')->name('categories.destroy');
+    Route::patch('/categories/{id}/toggle', [PortalController::class, 'categoryToggle'])->whereNumber('id')->name('categories.toggle');
 
     // Assignments (placeholder - full view in Phase 9 follow-up)
     Route::get('/assignments', [PortalController::class, 'assignments'])->name('assignments.index');
@@ -42,4 +46,15 @@ Route::middleware('auth:web')->group(function () {
     // Settings (profile)
     Route::get('/settings',           [PortalController::class, 'settings'])->name('settings');
     Route::patch('/settings',         [PortalController::class, 'settingsUpdate'])->name('settings.profile');
+
+    // Settings — notifications
+    Route::post('/settings/notifications/mark-all-read', [PortalController::class, 'markNotificationsRead'])->name('settings.notifications.markRead');
+    Route::patch('/settings/notifications/{id}',         [PortalController::class, 'notificationToggle'])->whereNumber('id')->name('settings.notifications.update');
+
+    // Settings — security & email
+    Route::patch('/settings/security', [PortalController::class, 'securityUpdate'])->name('settings.security');
+    Route::patch('/settings/email',    [PortalController::class, 'emailUpdate'])->name('settings.email');
+
+    // Settings — system (admin-only actions)
+    Route::post('/settings/system/retrain', [PortalController::class, 'systemRetrain'])->name('settings.system.retrain');
 });

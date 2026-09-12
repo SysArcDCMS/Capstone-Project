@@ -501,6 +501,14 @@ body {
   color: #2563eb;
 }
 
+.settings-panel {
+  display: none;
+}
+
+.settings-panel.active {
+  display: block;
+}
+
 /* ----- user history specific ----- */
 .history-timeline-item {
   background: white;
@@ -532,6 +540,10 @@ body {
 }
 
 /* ----- misc spacing ----- */
+.hidden {
+  display: none !important;
+}
+
 .mt-1 {
   margin-top: 0.25rem;
 }
