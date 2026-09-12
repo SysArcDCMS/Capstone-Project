@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Assignment;
 use App\Models\Availability;
+use App\Models\Category;
 use App\Models\Feedback;
 use App\Models\Incident;
 use App\Models\User;
@@ -36,6 +37,46 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+            // ── Categories (canonical ai-nlp labels + portal display) ──
+            Category::insert([
+                [
+                    'category_name' => 'Metering',
+                    'label'         => 'Metering Issue',
+                    'description'   => 'Problems with meter reading or damage.',
+                    'color'         => '#3b82f6',
+                    'is_active'     => true,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ],
+                [
+                    'category_name' => 'Billing',
+                    'label'         => 'Billing Issue',
+                    'description'   => 'Errors or concerns about bills and payments.',
+                    'color'         => '#8b5cf6',
+                    'is_active'     => true,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ],
+                [
+                    'category_name' => 'Water Quality',
+                    'label'         => 'Water Quality Concern',
+                    'description'   => 'Dirty, smelly, or unsafe water.',
+                    'color'         => '#10b981',
+                    'is_active'     => true,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ],
+                [
+                    'category_name' => 'Operations',
+                    'label'         => 'Operations Issue',
+                    'description'   => 'Supply issues like no water, leaks, or low pressure.',
+                    'color'         => '#f87171',
+                    'is_active'     => true,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ],
+            ]);
+
             // ── Users ─────────────────────────────────────────────────
             $admin = User::create([
                 'full_name'  => 'Malupiton Admin',
