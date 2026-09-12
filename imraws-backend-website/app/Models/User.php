@@ -85,6 +85,18 @@ class User extends Authenticatable implements JWTSubject
     public function isEngineer(): bool       { return $this->role === self::ROLE_ENGINEER; }
     public function isOffsiteStaff(): bool   { return $this->role === self::ROLE_OFFSITE_STAFF; }
 
+    /** Human-readable role word for the portal sidebar brand. */
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            self::ROLE_ADMINISTRATOR  => 'Administrator',
+            self::ROLE_ENGINEER       => 'Engineer',
+            self::ROLE_OFFSITE_STAFF  => 'Staff',
+            self::ROLE_CUSTOMER       => 'Customer',
+            default                   => 'User',
+        };
+    }
+
     // ── Relationships ──────────────────────────────────────────────────
 
     /** Incidents filed by this customer. */

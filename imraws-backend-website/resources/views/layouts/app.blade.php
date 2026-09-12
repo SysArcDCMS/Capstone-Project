@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>@yield('title', 'Dashboard') · IMRAWS-NLP Admin</title>
+  <title>@yield('title', 'Dashboard') · IMRAWS-NLP</title>
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}" />
   <script src="https://unpkg.com/lucide@latest"></script>
   @stack('styles')
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <span class="logo-icon">💧</span>
-      <span>IMRAWS-NLP Admin</span>
+      <span>IMRAWS-NLP {{ auth()->user()->roleLabel() }}</span>
     </div>
     <nav class="sidebar-nav">
       <a href="{{ route('dashboard') }}" class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -27,15 +27,21 @@
           <i data-lucide="clipboard-list"></i> Assignments
         </a>
       @endif
-      <a href="{{ route('users.index') }}" class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-        <i data-lucide="users"></i> Users
-      </a>
-      <a href="{{ route('categories.index') }}" class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-        <i data-lucide="folder"></i> Categories
-      </a>
-      <a href="{{ route('reports.dashboard') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-        <i data-lucide="bar-chart-2"></i> Reports
-      </a>
+      @if(auth()->user()->isAdministrator() || auth()->user()->isEngineer())
+        <a href="{{ route('users.index') }}" class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+          <i data-lucide="users"></i> Users
+        </a>
+      @endif
+      @if(auth()->user()->isAdministrator())
+        <a href="{{ route('categories.index') }}" class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+          <i data-lucide="folder"></i> Categories
+        </a>
+      @endif
+      @if(auth()->user()->isAdministrator() || auth()->user()->isEngineer())
+        <a href="{{ route('reports.dashboard') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+          <i data-lucide="bar-chart-2"></i> Reports
+        </a>
+      @endif
       <a href="{{ route('settings') }}" class="nav-item {{ request()->routeIs('settings') ? 'active' : '' }}">
         <i data-lucide="settings"></i> Settings
       </a>
@@ -44,7 +50,7 @@
       <div class="avatar-sm">{{ strtoupper(substr(auth()->user()->full_name ?? 'U', 0, 1)) }}{{ strtoupper(substr(auth()->user()->full_name ?? '', 1, 1)) }}</div>
       <div class="user-meta">
         <div class="name">{{ auth()->user()->full_name }}</div>
-        <div class="role">{{ ucwords(str_replace('_', ' ', auth()->user()->role)) }}</div>
+        <div class="role">{{ auth()->user()->roleLabel() }}</div>
       </div>
       <form method="POST" action="{{ route('logout') }}" style="display:inline;">
         @csrf
