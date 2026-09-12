@@ -27,6 +27,66 @@ class NlpService
     ) {}
 
     /**
+     * Health check — short timeout so settings page stays responsive.
+     *
+     * @return array{status:string, queue_size?:int, results_count?:int, timestamp?:string}|null
+     */
+    public function health(): ?array
+    {
+        try {
+            $response = Http::timeout(5)
+                ->acceptJson()
+                ->get(rtrim($this->baseUrl, '/').'/api/v1/health');
+            if ($response->failed()) {
+                return ['status' => 'offline', 'http_status' => $response->status()];
+            }
+            return $response->json();
+        } catch (\Throwable) {
+            return ['status' => 'offline'];
+        }
+    }
+
+    /**
+     * Trigger background retrain via POST /api/v1/retrain.
+     *
+     * @return array{status:string, message?:string, accuracy?:float|null, total_samples?:int|null}
+     * @throws \RuntimeException when the service is unreachable
+     */
+    public function retrain(): array
+    {
+        $response = Http::timeout($this->timeoutSeconds)
+            ->acceptJson()
+            ->asJson()
+            ->post(rtrim($this->baseUrl, '/').'/api/v1/retrain');
+        if ($response->failed()) {
+            throw new \RuntimeException(
+                "NLP service /retrain failed (HTTP {$response->status()})"
+            );
+        }
+        return $response->json();
+    }
+
+    /**
+     * Retrieve current severity config from the NLP service.
+     *
+     * @return array{severity_weights?:array, ...}|null
+     */
+    public function severityConfig(): ?array
+    {
+        try {
+            $response = Http::timeout(5)
+                ->acceptJson()
+                ->get(rtrim($this->baseUrl, '/').'/api/v1/severity-config');
+            if ($response->failed()) {
+                return null;
+            }
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Run the full NLP pipeline on a complaint.
      *
      * @return array{
