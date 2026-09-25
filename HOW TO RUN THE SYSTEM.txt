@@ -4,6 +4,27 @@ dart run tool/run.dart
 or
 dart run imraws-mobile/tool/run.dart
 
+(forward extra args to flutter run, e.g. a Google Maps key:
+ dart run tool/run.dart --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY)
+
+
+ - - - - - - - - - MOBILE: GOOGLE MAPS API KEY - - - - - - - - -
+
+The complaint form's "Set Location on Map" picker needs a Google Maps API
+key for Android. Get one from Google Cloud Console -> APIs & Services ->
+Credentials with the "Maps SDK for Android" enabled.
+
+The key is read at build time via --dart-define (see above), OR paste it
+into the manifest:
+
+    imraws-mobile\android\app\src\main\AndroidManifest.xml
+        <meta-data android:name="com.google.android.geo.API_KEY"
+                   android:value="YOUR_KEY"/>
+
+Without a key the app still runs; the map screen just shows a blank grid.
+Location permission dialogs (fine/general) are requested the first time
+you tap "Use My Location".
+
 
  - - - - - FOR RUNNING THE WEBSITE-BACKEND - - - - - -
 
@@ -29,3 +50,15 @@ opencode -s ses_f7f26880dffeJgr4qKRR2FvKtu
 | Offsite Staff (Water Quality) | `tl.water_quality@imraws.local` | `staff123` |
 | Offsite Staff (Operations) | `tl.operations@imraws.local` | `staff123` |
 | Customer | `robert.j@example.com` | `customer123` |
+
+ - - - - - - - - - - ACCOUNT LOCKOUT - - - - - - - - -
+
+3 consecutive failed logins (web portal or mobile app) lock the account
+for 15 minutes. The user must wait it out before trying again; a
+successful login resets the counter.
+
+ - - - - - - CHANGE PASSWORD (MOBILE) - - - - - -
+
+Account screen (notifications bell menu / My Account) has a Change
+Password form: current password + new password (min. 8 chars, must
+match the confirmation). Uses POST /api/auth/change-password.

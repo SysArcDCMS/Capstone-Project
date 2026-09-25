@@ -486,12 +486,13 @@ JWT in the `Authorization: Bearer <token>` header.
 | PATCH | `/api/auth/profile` | Update own profile (DFD 1.8) |
 | POST | `/api/auth/logout` | Invalidate JWT |
 | POST | `/api/auth/refresh` | Get a new JWT |
+| POST | `/api/auth/change-password` | Rotate own password (`current_password`, `password` min 8 + `password_confirmation`) |
 
 ### Incidents
 
 | Method | URL | Role | Notes |
 |---|---|---|---|
-| POST | `/api/incidents` | customer | Triggers NLP, persists composite_score |
+| POST | `/api/incidents` | customer | Triggers NLP, persists composite_score; optional `latitude`/`longitude` (decimal(10,7)) for the mobile map picker |
 | GET | `/api/incidents` | any | Role-filtered listing |
 | GET | `/api/incidents/{id}` | any | Customer sees own only |
 | PATCH | `/api/incidents/{id}/status` | offsite_staff / engineer / admin | DFD 5.3, 5.7 |
@@ -657,6 +658,18 @@ Network/proxy can stall.
 Fix: Wait (default timeout is generous). If it never completes, check your
 proxy settings or run `HUGGINGFACE_HUB_DOWNLOAD_TIMEOUT=300` before
 launching the service.
+
+### 16.12 Account locked after wrong logins
+
+Cause: 3 consecutive failed logins (web login or mobile `/api/auth/login`)
+lock the account for 15 minutes (`users.failed_login_attempts` reaches
+`MAX_LOGIN_ATTEMPTS`, `users.locked_until` set).
+
+Fix: Wait for the lock to expire, or clear it manually:
+```powershell
+psql -U imraws_user -h localhost -p 5432 -d imraws_db -c "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE email = 'target@example.com';"
+```
+A successful login resets the counter automatically.
 
 ---
 
