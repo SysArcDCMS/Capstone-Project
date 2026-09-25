@@ -154,10 +154,11 @@ class PortalController extends Controller
         $current = $incident->currentAssignment();
         $categories = Category::active()
             ->orderBy('category_name')
-            ->get(['category_name', 'label'])
+            ->get(['category_name', 'label', 'color'])
             ->map(fn (Category $c) => [
                 'category_name' => $c->category_name,
                 'label'         => $c->displayLabel(),
+                'color'         => $c->color ?? '#cbd5e1',
             ])
             ->values();
 

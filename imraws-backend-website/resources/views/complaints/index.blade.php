@@ -26,12 +26,13 @@
         <option value="{{ $s }}" @selected(request('severity')===$s)>{{ $s }}</option>
       @endforeach
     </select>
-    <select name="category">
-      <option value="">All Categories</option>
-      @foreach($categories as $cat)
-        <option value="{{ $cat->category_name }}" @selected(request('category')===$cat->category_name)>{{ $cat->displayLabel() }}</option>
-      @endforeach
-    </select>
+    @include('components.category_select', [
+        'name'       => 'category',
+        'selected'   => request('category') ?? '',
+        'categories' => $categories,
+        'colors'     => $category_colors,
+        'placeholder'=> 'All Categories',
+    ])
     <button type="submit" class="btn-primary" style="padding:0.4rem 1rem;">Filter</button>
     <span style="font-size:0.85rem; color:#64748b; margin-left:auto;">
       Showing {{ $complaints->count() }} of {{ $complaints->total() }} complaints

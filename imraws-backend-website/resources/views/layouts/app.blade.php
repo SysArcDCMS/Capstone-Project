@@ -73,6 +73,83 @@
     document.querySelectorAll('.toggle-track').forEach(el => {
       el.addEventListener('click', function () { this.classList.toggle('on'); });
     });
+
+    // Category color dropdowns (shared across portal)
+    (function () {
+      const NEUTRAL = '#cbd5e1';
+
+      function bind(root) {
+        root.querySelectorAll('.cat-dd').forEach(function (dd) {
+          if (dd.dataset.catInit) return;
+          dd.dataset.catInit = '1';
+          const toggle = dd.querySelector('[data-cat-dd-toggle]');
+          const hidden = dd.querySelector('[data-cat-dd-value]');
+          const dot = dd.querySelector('[data-cat-dd-toggle] .cat-dd-dot');
+          const text = dd.querySelector('[data-cat-dd-text]');
+
+          function select(value, color, label) {
+            if (hidden) hidden.value = value;
+            if (dot) dot.style.background = color;
+            if (text) text.textContent = label;
+            dd.querySelectorAll('.cat-dd-row').forEach(function (r) {
+              r.classList.toggle('is-selected', String(r.dataset.value || '') === String(value));
+            });
+            dd.classList.remove('open');
+            if (typeof window.catDDChanged === 'function') {
+              window.catDDChanged(dd, value, color, label);
+            }
+          }
+
+          toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.cat-dd.open').forEach(function (o) { if (o !== dd) o.classList.remove('open'); });
+            dd.classList.toggle('open');
+          });
+
+          dd.addEventListener('click', function (e) {
+            const row = e.target.closest('.cat-dd-row');
+            if (!row) return;
+            select(row.dataset.value || '', row.dataset.color || NEUTRAL, row.textContent.trim());
+          });
+        });
+      }
+
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.cat-dd')) {
+          document.querySelectorAll('.cat-dd.open').forEach(function (o) { o.classList.remove('open'); });
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.cat-dd.open').forEach(function (o) { o.classList.remove('open'); });
+        }
+      });
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { bind(document); });
+      } else {
+        bind(document);
+      }
+
+      window.catDDSetOptions = function (ddOrId, options, selected, placeholder) {
+        const dd = typeof ddOrId === 'string' ? document.getElementById(ddOrId) : ddOrId;
+        if (!dd) return;
+        const panel = dd.querySelector('.cat-dd-panel');
+        if (!panel) return;
+        panel.innerHTML = (options || []).map(function (o) {
+          const sel = String(o.value) === String(selected || '') ? ' is-selected' : '';
+          return '<button type="button" class="cat-dd-row' + sel + '" data-value="' + o.value + '" data-color="' + o.color + '">'
+            + '<span class="cat-dd-dot" style="background:' + o.color + ';"></span>' + o.label + '</button>';
+        }).join('');
+        const hidden = dd.querySelector('[data-cat-dd-value]');
+        const dot = dd.querySelector('[data-cat-dd-toggle] .cat-dd-dot');
+        const text = dd.querySelector('[data-cat-dd-text]');
+        const chosen = (options || []).find(function (o) { return String(o.value) === String(selected || ''); });
+        if (hidden) hidden.value = selected || '';
+        if (dot) dot.style.background = chosen ? chosen.color : NEUTRAL;
+        if (text) text.textContent = chosen ? chosen.label : (placeholder || '');
+        bind(dd);
+      };
+    })();
   </script>
   @stack('scripts')
 </body>

@@ -49,9 +49,19 @@
         <div class="cm-section">
           <span class="cm-label" for="cm-category">Correct category &amp; auto-route</span>
           <div class="cm-row">
-            <select name="category" id="cm-category" class="cm-select">
-              <option value="">— Select category —</option>
-            </select>
+            <div class="cat-dd cm-cat-dd" id="cm-category">
+              <input type="hidden" name="category" value="" data-cat-dd-value />
+              <button type="button" class="cat-dd-btn" data-cat-dd-toggle title="Select category">
+                <span class="cat-dd-label">
+                  <span class="cat-dd-dot"></span>
+                  <span data-cat-dd-text>— Select category —</span>
+                </span>
+                <span class="cat-dd-caret">&#9662;</span>
+              </button>
+              <div class="cat-dd-panel" role="listbox">
+                <button type="button" class="cat-dd-row" data-value="" data-color="#cbd5e1"><span class="cat-dd-dot" style="background:#cbd5e1;"></span>— Select category —</button>
+              </div>
+            </div>
           </div>
           <span id="cm-auto" class="cm-auto"></span>
           <div class="cm-hint">Picking a different category updates the complaint and AI-routes it to the best available staff in that department (no extra click).</div>
@@ -132,12 +142,12 @@
         ? (data.current.team_leader || '—') + ' (' + data.current.action_status.replace('_', ' ') + ')'
         : 'Unassigned';
 
-      const cats = document.getElementById('cm-category');
-      cats.innerHTML = '<option value="">— Select category —</option>' +
-        data.categories.map(c =>
-          `<option value="${c.category_name}">${c.label}</option>`
-        ).join('');
-      cats.value = data.category || '';
+      window.catDDSetOptions('cm-category',
+        data.categories.map(function (c) {
+          return { value: c.category_name, label: c.label, color: c.color || '#cbd5e1' };
+        }),
+        data.category || '',
+        '— Select category —');
 
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
@@ -175,8 +185,9 @@
     });
 
     // Route (instant — fires on category change)
-    document.getElementById('cm-category').addEventListener('change', function () {
-      const category = this.value.trim();
+    window.catDDChanged = function (dd, value) {
+      if (!dd || dd.id !== 'cm-category') return;
+      const category = String(value || '').trim();
       if (!category || category === currentCategory) return;
 
       const fd = new FormData();
@@ -196,7 +207,7 @@
         }
         showMsg(json.message || (ok ? 'Routed to available staff.' : 'Routing failed.'), ok);
       });
-    });
+    };
 
     function updateChip(key, value) {
       document.querySelectorAll('#cm-meta .cm-chip').forEach(chip => {
