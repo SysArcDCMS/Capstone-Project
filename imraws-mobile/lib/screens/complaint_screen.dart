@@ -6,6 +6,7 @@ import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../providers/auth_provider.dart';
 import '../providers/incident_provider.dart';
+import '../widgets/confirm_dialog.dart';
 import 'map_picker_screen.dart';
 
 class ComplaintScreen extends StatefulWidget {
@@ -47,6 +48,15 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
       );
       return;
     }
+
+    final proceed = await confirmAction(
+      context,
+      title: 'Submit Complaint?',
+      message: 'Your complaint will be submitted, analyzed, and routed to the appropriate department.',
+      confirmLabel: 'Submit',
+    );
+    if (proceed != true) return;
+    if (!mounted) return;
 
     final provider = context.read<IncidentProvider>();
     final result = await provider.submitComplaint(

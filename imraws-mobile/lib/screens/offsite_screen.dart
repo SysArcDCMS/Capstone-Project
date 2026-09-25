@@ -10,6 +10,7 @@ import '../providers/incident_provider.dart';
 import '../providers/assignment_provider.dart';
 import '../models/assignment_model.dart';
 import '../services/availability_service.dart';
+import '../widgets/confirm_dialog.dart';
 
 class OffsiteScreen extends StatefulWidget {
   const OffsiteScreen({super.key});
@@ -36,6 +37,15 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
   }
 
   Future<void> _accept(Assignment a) async {
+    final confirmed = await confirmAction(
+      context,
+      title: 'Accept Assignment?',
+      message: 'This assignment will be locked to you and shown as your active incident.',
+      confirmLabel: 'Accept',
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
     final provider = context.read<AssignmentProvider>();
     final error = await provider.teamLeaderAction(a.id, action: 'accept');
     if (!mounted) return;

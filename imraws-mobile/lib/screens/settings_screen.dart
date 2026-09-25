@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/confirm_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -129,6 +130,14 @@ class SettingsScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
+                          final ok = await confirmAction(
+                            context,
+                            title: 'Log Out?',
+                            message: 'You will be signed out of your account.',
+                            confirmLabel: 'Log Out',
+                          );
+                          if (ok != true) return;
+                          if (!context.mounted) return;
                           final auth = context.read<AuthProvider>();
                           await auth.logout();
                           if (!context.mounted) return;

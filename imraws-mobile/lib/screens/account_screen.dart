@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/pill_input.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/confirm_dialog.dart';
 import '../providers/auth_provider.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -368,6 +369,14 @@ class _AccountScreenState extends State<AccountScreen> {
                         width: double.infinity,
                         child: OutlinedButton(
                           onPressed: () async {
+                            final ok = await confirmAction(
+                              context,
+                              title: 'Log Out?',
+                              message: 'You will be signed out of your account.',
+                              confirmLabel: 'Log Out',
+                            );
+                            if (ok != true) return;
+                            if (!context.mounted) return;
                             final auth = context.read<AuthProvider>();
                             await auth.logout();
                             if (!context.mounted) return;
