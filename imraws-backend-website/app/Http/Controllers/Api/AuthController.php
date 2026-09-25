@@ -171,6 +171,44 @@ class AuthController extends Controller
     }
 
     /**
+     * POST /api/auth/change-password
+     *
+     * Any authenticated user may rotate their own password. The current
+     * password is verified first; the new one must be at least 8 chars.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password'         => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'Current password is incorrect.',
+                'errors'  => ['current_password' => ['The current password is incorrect.']],
+            ], 422);
+        }
+
+        $user->password = Hash::make($data['password']);
+        $user->save();
+
+        AuditLog::record(
+            userId:    $user->id,
+            action:    'self.change_password',
+            tableName: 'users',
+            recordId:  $user->id,
+        );
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    /**
      * POST /api/auth/logout
      */
     public function logout(): JsonResponse

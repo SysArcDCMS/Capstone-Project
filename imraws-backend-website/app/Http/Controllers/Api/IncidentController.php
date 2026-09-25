@@ -108,6 +108,8 @@ class IncidentController extends Controller
         $data = $request->validate([
             'description' => ['required', 'string', 'min:5', 'max:5000'],
             'location'    => ['nullable', 'string', 'max:500'],
+            'latitude'    => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'   => ['nullable', 'numeric', 'between:-180,180'],
             'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
         ]);
 
@@ -150,6 +152,8 @@ class IncidentController extends Controller
             'customer_id'     => $customerId,
             'description'     => $data['description'],
             'location'        => $data['location'] ?? null,
+            'latitude'        => $data['latitude'] ?? null,
+            'longitude'       => $data['longitude'] ?? null,
             'category'        => $analysis['category'],
             'severity'        => $analysis['severity'],
             'composite_score' => $analysis['composite_score'],

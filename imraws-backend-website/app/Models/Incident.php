@@ -32,6 +32,8 @@ class Incident extends Model
         'customer_id',
         'description',
         'location',
+        'latitude',
+        'longitude',
         'category',
         'severity',
         'composite_score',
