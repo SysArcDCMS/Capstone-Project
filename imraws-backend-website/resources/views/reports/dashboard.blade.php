@@ -45,6 +45,21 @@
   </div>
 
   <div class="table-wrap p-5 mt-4">
+    <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">By Category</h3>
+    <table><thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+      @php $colors = $d['category_colors'] ?? []; @endphp
+      @forelse($d['incidents']['by_category'] ?? [] as $k => $v)
+        <tr>
+          <td><span class="category-dot" style="background:{{ $colors[$k] ?? '#3b82f6' }};"></span>{{ $k }}</td>
+          <td style="text-align:right;font-weight:600;">{{ $v }}</td>
+        </tr>
+      @empty
+        <tr><td colspan="2" style="color:#94a3b8;">No categorized incidents yet.</td></tr>
+      @endforelse
+    </tbody></table>
+  </div>
+
+  <div class="table-wrap p-5 mt-4">
     <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">Top Misclassification Patterns</h3>
     <table><thead><tr><th>From</th><th>To</th><th style="text-align:right;">Count</th></tr></thead><tbody>
       @forelse($d['feedback']['top_correction_pairs'] as $p)

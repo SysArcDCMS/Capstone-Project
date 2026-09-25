@@ -28,8 +28,8 @@
     </select>
     <select name="category">
       <option value="">All Categories</option>
-      @foreach(['Billing','Water Quality','Metering','Operations'] as $c)
-        <option value="{{ $c }}" @selected(request('category')===$c)>{{ $c }}</option>
+      @foreach($categories as $cat)
+        <option value="{{ $cat->category_name }}" @selected(request('category')===$cat->category_name)>{{ $cat->displayLabel() }}</option>
       @endforeach
     </select>
     <button type="submit" class="btn-primary" style="padding:0.4rem 1rem;">Filter</button>
@@ -56,13 +56,13 @@
               'resolved' => 'badge-green', 'rejected' => 'badge-gray',
             ][$c->status] ?? 'badge-gray';
             $sevBadge = ['High'=>'badge-red','Medium'=>'badge-yellow','Low'=>'badge-blue'][$c->severity] ?? 'badge-gray';
-            $dot = ['Billing'=>'dot-purple','Water Quality'=>'dot-green','Metering'=>'dot-blue','Operations'=>'dot-coral'][$c->category] ?? 'dot-blue';
+            $catColor = $category_colors[$c->category] ?? '#3b82f6';
             $tl = $c->assignments->where('action_status','!=','reassign')->sortByDesc('assigned_at')->first();
           @endphp
           <tr>
             <td>C{{ str_pad($c->id, 3, '0', STR_PAD_LEFT) }}</td>
             <td>{{ $c->customer->full_name ?? '—' }}</td>
-            <td><span class="category-dot {{ $dot }}"></span>{{ $c->category ?? '—' }}</td>
+            <td><span class="category-dot" style="background:{{ $catColor }};"></span>{{ $c->category ?? '—' }}</td>
             <td>{{ \Illuminate\Support\Str::limit($c->description, 50) }}</td>
             <td><span class="badge-pill {{ $badge }}">{{ ucwords(str_replace('_',' ',$c->status)) }}</span></td>
             <td><span class="badge-pill {{ $sevBadge }}">{{ $c->severity ?? '—' }}</span></td>

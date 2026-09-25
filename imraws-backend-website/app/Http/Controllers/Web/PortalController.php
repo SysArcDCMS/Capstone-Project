@@ -104,6 +104,7 @@ class PortalController extends Controller
     public function dashboard()
     {
         $data = (new ReportAggregator())->dashboard();
+        $data['category_colors'] = Category::pluck('color', 'category_name');
         return view('dashboard', ['data' => $data]);
     }
 
@@ -120,14 +121,21 @@ class PortalController extends Controller
             }
         }
 
-        return view('complaints.index', ['complaints' => $query->paginate(20)]);
+        return view('complaints.index', [
+            'complaints'      => $query->paginate(20),
+            'categories'      => Category::orderBy('category_name')->get(),
+            'category_colors' => Category::pluck('color', 'category_name'),
+        ]);
     }
 
     public function complaintShow(int $id)
     {
         $incident = Incident::with(['customer','assignments.teamLeader','feedback','attachments'])
             ->findOrFail($id);
-        return view('complaints.show', ['incident' => $incident]);
+        return view('complaints.show', [
+            'incident'       => $incident,
+            'category_color' => Category::where('category_name', $incident->category)->value('color'),
+        ]);
     }
 
     /**
@@ -461,8 +469,21 @@ class PortalController extends Controller
             'category_name' => ['required','string','max:32','unique:tbl_categories,category_name'],
             'label'         => ['nullable','string','max:64'],
             'description'   => ['nullable','string','max:500'],
-            'color'         => ['nullable','regex:/^#[0-9A-Fa-f]{6}$/'],
+            'color'         => [
+                'nullable', 'regex:/^#[0-9A-Fa-f]{6}$/',
+                function ($attr, $value, $fail) {
+                    if (! $value) {
+                        return;
+                    }
+                    if (Category::whereRaw('LOWER(color) = ?', [strtolower($value)])->exists()) {
+                        $fail('A category with this color (#'.strtolower(ltrim($value, '#')).') already exists.');
+                    }
+                },
+            ],
         ]);
+        if (! empty($data['color'])) {
+            $data['color'] = strtolower($data['color']);
+        }
         $category = Category::create($data + [
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
@@ -481,8 +502,23 @@ class PortalController extends Controller
             'category_name' => ['required','string','max:32', Rule::unique('tbl_categories', 'category_name')->ignore($id)],
             'label'         => ['nullable','string','max:64'],
             'description'   => ['nullable','string','max:500'],
-            'color'         => ['nullable','regex:/^#[0-9A-Fa-f]{6}$/'],
+            'color'         => [
+                'nullable', 'regex:/^#[0-9A-Fa-f]{6}$/',
+                function ($attr, $value, $fail) use ($id) {
+                    if (! $value) {
+                        return;
+                    }
+                    if (Category::whereRaw('LOWER(color) = ?', [strtolower($value)])
+                        ->where('id', '!=', $id)
+                        ->exists()) {
+                        $fail('A category with this color (#'.strtolower(ltrim($value, '#')).') already exists.');
+                    }
+                },
+            ],
         ]);
+        if (! empty($data['color'])) {
+            $data['color'] = strtolower($data['color']);
+        }
         $old = $category->only(['category_name','label','description','color']);
         $category->fill($data)->save();
         $category->updated_by = auth()->id();
@@ -546,6 +582,7 @@ class PortalController extends Controller
     public function reports()
     {
         $data = (new ReportAggregator())->dashboard();
+        $data['category_colors'] = Category::pluck('color', 'category_name');
         return view('reports.dashboard', ['data' => $data]);
     }
 

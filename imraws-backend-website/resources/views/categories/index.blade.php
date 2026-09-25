@@ -31,8 +31,12 @@
           <input class="form-input" name="label" value="{{ old('label') }}" placeholder="e.g. Metering Issue" maxlength="64" />
         </div>
         <div>
-          <label class="form-label">Color (hex)</label>
-          <input class="form-input" name="color" value="{{ old('color') }}" placeholder="#3b82f6" maxlength="7" pattern="#[0-9A-Fa-f]{6}" />
+          <label class="form-label">Color</label>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="color" name="color" value="{{ old('color', '#3b82f6') }}" style="width:2.75rem;height:2.4rem;border:1px solid #e2e8f0;border-radius:0.5rem;background:#fff;padding:0.15rem;cursor:pointer;" />
+            <input class="form-input" style="flex:1;" name="color_hex" value="{{ old('color', '#3b82f6') }}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" readonly />
+          </div>
+          @error('color') <span style="color:#ef4444;font-size:0.75rem;margin-top:0.15rem;display:block;">{{ $message }}</span> @enderror
         </div>
         <div>
           <label class="form-label">Description</label>
@@ -109,7 +113,11 @@
               </div>
               <div>
                 <label class="form-label">Color</label>
-                <input class="form-input" name="color" value="{{ old('color', $cat->color) }}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" />
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <input type="color" name="color" value="{{ old('color', $cat->color ?: '#64748b') }}" style="width:2.75rem;height:2.4rem;border:1px solid #e2e8f0;border-radius:0.5rem;background:#fff;padding:0.15rem;cursor:pointer;" />
+                  <input class="form-input" style="flex:1;" name="color_hex" value="{{ old('color', $cat->color ?: '#64748b') }}" maxlength="7" pattern="#[0-9A-Fa-f]{6}" readonly />
+                </div>
+                @error('color') <span style="color:#ef4444;font-size:0.75rem;display:block;">{{ $message }}</span> @enderror
               </div>
               <div>
                 <label class="form-label">Description</label>
@@ -126,3 +134,15 @@
     @endforeach
   </div>
 @endsection
+
+@push('scripts')
+<script>
+  // Keep the color picker and its hex field in sync (lower-case normalized).
+  document.querySelectorAll('input[type="color"][name="color"]').forEach(function (picker) {
+    const hex = picker.closest('div').querySelector('input[name="color_hex"]');
+    if (!hex) return;
+    picker.addEventListener('input', function () { hex.value = this.value.toLowerCase(); });
+    hex.value = hex.value.toLowerCase();
+  });
+</script>
+@endpush

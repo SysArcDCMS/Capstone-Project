@@ -67,10 +67,17 @@
   <div class="mt-6" style="background:white; border-radius:1rem; padding:1.25rem; border:1px solid #f1f5f9;">
     <h3 style="font-weight:600; color:#1e293b; margin-bottom:0.75rem;">Top Complaint Categories</h3>
     <div style="display:flex; align-items:flex-end; height:130px; gap:1.25rem;">
-      @php $maxCat = max(1, (int) ($cat->max() ?? 1)); @endphp
-      @foreach(['Metering' => 'dot-blue', 'Billing' => 'dot-purple', 'Water Quality' => 'dot-green', 'Operations' => 'dot-coral'] as $label => $color)
+      @php
+        $maxCat = max(1, (int) ($cat->max() ?? 1));
+        $colors = $data['category_colors'] ?? [];
+      @endphp
+      @foreach($cat->keys() as $label)
+        @php
+          $hex = $colors[$label] ?? '#3b82f6';
+          $light = $hex . '33';
+        @endphp
         <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
-          <div class="chart-bar" style="height:{{ max(20, ((($cat[$label] ?? 0) / $maxCat) * 100)) }}px; background:{{ $color === 'dot-blue' ? '#bfdbfe' : ($color === 'dot-purple' ? '#c4b5fd' : ($color === 'dot-green' ? '#a7f3d0' : '#fca5a5')) }};"></div>
+          <div class="chart-bar" style="height:{{ max(20, ((($cat[$label] ?? 0) / $maxCat) * 100)) }}px; background:{{ $light }}; border-top:3px solid {{ $hex }};"></div>
           <span style="font-size:0.7rem; color:#64748b; margin-top:0.25rem;">{{ $label }} ({{ $cat[$label] ?? 0 }})</span>
         </div>
       @endforeach
