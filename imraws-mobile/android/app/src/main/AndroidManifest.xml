@@ -8,9 +8,9 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
-        <!-- Google Maps API key — replace YOUR_GOOGLE_MAPS_API_KEY with your
-             real key, or pass --dart-define=GOOGLE_MAPS_API_KEY=... at build.
-             See HOW TO RUN THE SYSTEM.txt. -->
+        <!-- Google Maps API key: replace YOUR_GOOGLE_MAPS_API_KEY with your real
+             key, or pass it via the dart-define flag (GOOGLE_MAPS_API_KEY=...) at
+             build. See HOW TO RUN THE SYSTEM.txt. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
