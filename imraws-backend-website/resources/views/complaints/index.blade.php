@@ -70,6 +70,9 @@
             <td>{{ $c->submitted_at?->diffForHumans() ?? '—' }}</td>
             <td>
               <a href="{{ route('complaints.show', $c->id) }}" class="action-icon" title="View"><i data-lucide="eye"></i></a>
+              @if(auth()->user()->isAdministrator() || auth()->user()->isEngineer())
+                <a href="javascript:void(0)" class="action-icon" title="Actions" onclick="openComplaintActions({{ $c->id }})"><i data-lucide="sliders-horizontal"></i></a>
+              @endif
             </td>
           </tr>
         @empty
@@ -80,4 +83,5 @@
   </div>
 
   <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">{!! $complaints->links() !!}</div>
+  @include('complaints._action_modal')
 @endsection

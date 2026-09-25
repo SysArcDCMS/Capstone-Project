@@ -330,6 +330,157 @@ body {
   color: #475569;
 }
 
+/* ----- complaint action modal ----- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1rem;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 34rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.modal-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1.05rem;
+}
+
+.modal-sub {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 0.25rem;
+}
+
+.modal-close:hover {
+  color: #475569;
+}
+
+.modal-body {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.cm-desc {
+  color: #475569;
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.cm-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cm-chip {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 9999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.cm-chip b {
+  color: #1e293b;
+  margin-right: 0.25rem;
+}
+
+.cm-section {
+  padding: 0.75rem 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.cm-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.4rem;
+}
+
+.cm-value {
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.cm-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cm-select {
+  flex: 1;
+}
+
+.cm-form textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.cm-status-msg {
+  margin-top: 0.75rem;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.cm-status-msg.ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
 /* ----- utility: chart bars ----- */
 .chart-bar {
   border-radius: 6px 6px 0 0;

@@ -130,6 +130,199 @@ class PortalController extends Controller
         return view('complaints.show', ['incident' => $incident]);
     }
 
+    /**
+     * GET /complaints/{id}/modal
+     *
+     * JSON payload for the complaint action modal: incident summary, the
+     * current assignment and the list of routable team leaders. Leaders
+     * are filtered to the incident category's department when one exists.
+     */
+    public function complaintModal(int $id): JsonResponse
+    {
+        $incident = Incident::with(['customer:id,full_name,email', 'assignments.teamLeader:id,full_name,department_team'])
+            ->findOrFail($id);
+
+        $department = ['billing','metering','water_quality','operations'];
+        $leaders = User::query()
+            ->where('role', User::ROLE_OFFSITE_STAFF)
+            ->where('is_team_leader', true)
+            ->where('is_active', true)
+            ->withCount(['assignmentsAsTeamLeader as active_assignments' => function ($q) {
+                $q->whereNotIn('action_status', [
+                    \App\Models\Assignment::ACTION_RESOLVED,
+                    \App\Models\Assignment::ACTION_REJECT,
+                    \App\Models\Assignment::ACTION_REASSIGN,
+                ]);
+            }])
+            ->orderBy('department_team')
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'department_team']);
+
+        $current = $incident->currentAssignment();
+
+        return response()->json([
+            'data' => [
+                'id'          => $incident->id,
+                'code'        => 'C'.str_pad($incident->id, 3, '0', STR_PAD_LEFT),
+                'description' => $incident->description,
+                'category'    => $incident->category,
+                'severity'    => $incident->severity,
+                'status'      => $incident->status,
+                'location'    => $incident->location,
+                'submitted_at'=> $incident->submitted_at?->toDateTimeString(),
+                'customer'    => $incident->customer?->full_name,
+                'current'     => $current
+                    ? ['team_leader' => $current->teamLeader?->full_name, 'action_status' => $current->action_status]
+                    : null,
+                'team_leaders' => $leaders,
+            ],
+        ]);
+    }
+
+    /**
+     * PATCH /complaints/{id}/status
+     *
+     * Ajax status update from the action modal. Resolving sets resolved_at;
+     * reopening clears it. Customers are notified of the change.
+     */
+    public function complaintUpdateStatus(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in([
+                Incident::STATUS_OPEN,
+                Incident::STATUS_ASSIGNED,
+                Incident::STATUS_IN_PROGRESS,
+                Incident::STATUS_RESOLVED,
+                Incident::STATUS_REJECTED,
+            ])],
+        ]);
+
+        $incident = Incident::findOrFail($id);
+        $old = $incident->only(['status', 'resolved_at']);
+
+        $incident->status = $data['status'];
+        $incident->resolved_at = $data['status'] === Incident::STATUS_RESOLVED ? now() : null;
+        $incident->updated_by = auth()->id();
+        $incident->save();
+
+        AuditLog::record(auth()->id(), 'web.update_status', 'tbl_incidents', $incident->id,
+            oldValue: $old, newValue: $incident->only(['status', 'resolved_at']));
+
+        $this->notifyStatusChange($incident, $data['status'] ?? null);
+
+        return response()->json([
+            'message' => 'Status updated to '.str_replace('_', ' ', $incident->status).'.',
+            'data'    => $incident->only(['id', 'status', 'resolved_at']),
+        ]);
+    }
+
+    /**
+     * POST /complaints/{id}/route
+     *
+     * Manually (re)route a complaint to a specific team leader. Creates a
+     * new assignment row and flips the incident to "assigned".
+     */
+    public function complaintRoute(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'team_leader_id' => ['required', 'integer',
+                Rule::exists('users', 'id')->where(fn ($q) =>
+                    $q->where('role', User::ROLE_OFFSITE_STAFF)->where('is_team_leader', true)->where('is_active', true)),
+            ],
+        ]);
+
+        $incident = Incident::findOrFail($id);
+        $assignment = (new \App\Services\AiRoutingService())
+            ->reassign($incident, $data['team_leader_id']);
+
+        AuditLog::record(auth()->id(), 'web.route', 'tbl_assignments', $assignment->id,
+            newValue: ['incident_id' => $incident->id, 'team_leader_id' => $data['team_leader_id']]);
+
+        return response()->json([
+            'message' => "Complaint #{$incident->id} routed to ".($assignment->teamLeader?->full_name ?? 'team leader').'.',
+            'data'    => [
+                'id'              => $incident->id,
+                'status'          => $incident->status,
+                'assignment_id'   => $assignment->id,
+                'team_leader_id'  => $assignment->team_leader_id,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /complaints/{id}/resolve
+     *
+     * Resolve with optional resolution notes. Marks the active assignment
+     * as resolved too, so the team leader queue reflects completion.
+     */
+    public function complaintResolve(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'resolution_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $incident = Incident::findOrFail($id);
+        $old = $incident->only(['status', 'resolved_at']);
+
+        $incident->status      = Incident::STATUS_RESOLVED;
+        $incident->resolved_at = now();
+        $incident->updated_by  = auth()->id();
+        $incident->save();
+
+        $assignment = $incident->currentAssignment();
+        if ($assignment) {
+            $assignment->action_status   = \App\Models\Assignment::ACTION_RESOLVED;
+            $assignment->resolution_notes = $data['resolution_notes'] ?? null;
+            $assignment->updated_by       = auth()->id();
+            $assignment->save();
+        }
+
+        AuditLog::record(auth()->id(), 'web.resolve', 'tbl_incidents', $incident->id,
+            oldValue: $old, newValue: $incident->only(['status', 'resolved_at']));
+
+        $this->notifyStatusChange($incident, $data['resolution_notes'] ?? null);
+
+        return response()->json([
+            'message' => "Complaint #{$incident->id} resolved.",
+            'data'    => $incident->only(['id', 'status', 'resolved_at']),
+        ]);
+    }
+
+    /**
+     * Notify the customer (and current team leader) about a status change.
+     */
+    private function notifyStatusChange(Incident $incident, ?string $note = null): void
+    {
+        if ($incident->customer_id) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $incident->customer_id,
+                'message'     => match ($incident->status) {
+                    Incident::STATUS_IN_PROGRESS => "Your complaint #{$incident->id} is now being worked on.",
+                    Incident::STATUS_RESOLVED    => "Your complaint #{$incident->id} has been resolved."
+                        . ($note ? ' Note: '.$note : ''),
+                    Incident::STATUS_REJECTED    => "Your complaint #{$incident->id} could not be processed.",
+                    default => "Your complaint #{$incident->id} status: {$incident->status}.",
+                },
+                'is_read'     => false,
+                'created_by'  => auth()->id(),
+                'updated_by'  => auth()->id(),
+            ]);
+        }
+
+        $currentLeader = $incident->currentAssignment()?->team_leader_id;
+        if ($currentLeader) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'user_id'     => $currentLeader,
+                'message'     => "Incident #{$incident->id} status changed to {$incident->status}.",
+                'is_read'     => false,
+                'created_by'  => auth()->id(),
+                'updated_by'  => auth()->id(),
+            ]);
+        }
+    }
+
     public function complaintsExport()
     {
         // Simple CSV export

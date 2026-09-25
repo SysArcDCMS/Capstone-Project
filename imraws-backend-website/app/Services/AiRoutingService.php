@@ -104,7 +104,7 @@ class AiRoutingService
         return $this->createAssignment(
             incident:       $incident,
             teamLeaderId:   $newTeamLeaderId,
-            engineerReview: $incident->assignmentsAsTeamLeader()->latest('assigned_at')->first()?->engineer_review_id
+            engineerReview: $incident->assignments()->latest('assigned_at')->first()?->engineer_review_id
                              ?? auth()->id(),
         );
     }

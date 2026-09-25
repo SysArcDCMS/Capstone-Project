@@ -5,6 +5,9 @@
   <div class="page-header mt-3" style="margin-bottom:0.5rem;">
     <h1>Complaint #{{ str_pad($incident->id,3,'0',STR_PAD_LEFT) }}</h1>
     <p>{{ $incident->customer->full_name ?? 'Unknown' }} · {{ $incident->submitted_at?->format('M d, Y') }}</p>
+    @if(auth()->user()->isAdministrator() || auth()->user()->isEngineer())
+      <button type="button" class="btn-primary" style="padding:0.5rem 1rem;" onclick="openComplaintActions({{ $incident->id }})"><i data-lucide="sliders-horizontal" style="width:1rem;height:1rem;"></i> Actions</button>
+    @endif
   </div>
 
   <div class="grid grid-cols-2 gap-4 mt-3">
@@ -44,4 +47,6 @@
       @endforelse
     </div>
   </div>
+
+  @include('complaints._action_modal')
 @endsection

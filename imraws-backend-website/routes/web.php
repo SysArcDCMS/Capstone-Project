@@ -22,6 +22,15 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/complaints/export',           [PortalController::class, 'complaintsExport'])->name('complaints.export');
     Route::get('/complaints/{id}',             [PortalController::class, 'complaintShow'])->whereNumber('id')->name('complaints.show');
 
+    // Modal-based complaint actions (engineer / administrator).
+    // JSON-first: the modal fetches data and submits via fetch.
+    Route::middleware('role:administrator,engineer')->group(function () {
+        Route::get('/complaints/{id}/modal',   [PortalController::class, 'complaintModal'])->whereNumber('id')->name('complaints.modal');
+        Route::patch('/complaints/{id}/status',[PortalController::class, 'complaintUpdateStatus'])->whereNumber('id')->name('complaints.updateStatus');
+        Route::post('/complaints/{id}/route',  [PortalController::class, 'complaintRoute'])->whereNumber('id')->name('complaints.route');
+        Route::post('/complaints/{id}/resolve',[PortalController::class, 'complaintResolve'])->whereNumber('id')->name('complaints.resolve');
+    });
+
     // Users
     Route::get('/users',                  [PortalController::class, 'users'])->name('users.index');
     Route::get('/users/create',           [PortalController::class, 'userCreate'])->name('users.create');
