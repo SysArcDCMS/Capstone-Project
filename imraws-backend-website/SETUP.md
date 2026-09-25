@@ -454,7 +454,7 @@ After running `migrate:fresh --seed`, these accounts are available:
 | Role | Email | Password |
 |---|---|---|
 | Administrator | `admin@imraws.local` | `admin123` |
-| Engineer | `engineer.axel@imraws.local` | `engineer123` |
+| Engineer | `engr.billing@imraws.local` | `engineer123` |
 | Offsite Staff (Metering) | `tl.metering@imraws.local` | `staff123` |
 | Offsite Staff (Billing) | `tl.billing@imraws.local` | `staff123` |
 | Offsite Staff (Water Quality) | `tl.water_quality@imraws.local` | `staff123` |

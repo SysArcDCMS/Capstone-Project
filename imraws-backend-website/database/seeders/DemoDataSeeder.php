@@ -17,10 +17,10 @@ use Illuminate\Support\Facades\Hash;
  * the capstone UI mockups:
  *
  *   Malupiton Admin          (administrator)
- *   Engr. Axel Brion         (engineer)
- *   Engr. Kairo Zenith       (engineer)
- *   Engr. Lior Solven        (engineer)
- *   Engr. Lyra Vantrex       (engineer)
+ *   Engr. Axel Brion         (engineer, engr.billing@imraws.local)
+ *   Engr. Kairo Zenith       (engineer, engr.metering@imraws.local)
+ *   Engr. Lior Solven        (engineer, engr.water_quality@imraws.local)
+ *   Engr. Lyra Vantrex       (engineer, engr.operations@imraws.local)
  *   Roberto Dela Cruz        (offsite_staff team leader, metering)
  *   Kiko Valdez              (offsite_staff team leader, billing)
  *   Maris Domingo            (offsite_staff team leader, water_quality)
@@ -87,10 +87,10 @@ class DemoDataSeeder extends Seeder
             ]);
 
             $engineers = collect([
-                ['Axel Brion',  'engineer.axel@imraws.local',   'billing'],
-                ['Kairo Zenith','engineer.kairo@imraws.local',  'metering'],
-                ['Lior Solven', 'engineer.lior@imraws.local',   'water_quality'],
-                ['Lyra Vantrex','engineer.lyra@imraws.local',   'operations'],
+                ['Axel Brion',  'engr.billing@imraws.local',        'billing'],
+                ['Kairo Zenith','engr.metering@imraws.local',       'metering'],
+                ['Lior Solven', 'engr.water_quality@imraws.local',  'water_quality'],
+                ['Lyra Vantrex','engr.operations@imraws.local',     'operations'],
             ])->map(fn ($e) => User::create([
                 'full_name'       => "Engr. {$e[0]}",
                 'email'           => $e[1],
@@ -225,7 +225,7 @@ class DemoDataSeeder extends Seeder
             $this->command->info('');
             $this->command->info('Login credentials:');
             $this->command->info('  Admin:      admin@imraws.local / admin123');
-            $this->command->info('  Engineer:   engineer.axel@imraws.local / engineer123');
+            $this->command->info('  Engineer:   engr.billing@imraws.local / engineer123');
             $this->command->info('  Offsite:    tl.metering@imraws.local / staff123');
             $this->command->info('  Customer:   robert.j@example.com / customer123');
         });
