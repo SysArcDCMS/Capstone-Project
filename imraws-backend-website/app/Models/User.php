@@ -58,7 +58,45 @@ class User extends Authenticatable implements JWTSubject
             'password'          => 'hashed',
             'is_active'         => 'boolean',
             'is_team_leader'    => 'boolean',
+            'failed_login_attempts' => 'integer',
+            'locked_until'      => 'datetime',
         ];
+    }
+
+    /** Maximum consecutive failed logins before the account locks. */
+    public const MAX_LOGIN_ATTEMPTS = 3;
+
+    /** Minutes the account stays locked after MAX_LOGIN_ATTEMPTS failures. */
+    public const LOCKOUT_MINUTES = 15;
+
+    /** True when the account is inside a lockout window. */
+    public function isLocked(): bool
+    {
+        return $this->locked_until !== null && $this->locked_until->isFuture();
+    }
+
+    /** Record a failed login attempt; lock the account at the threshold. */
+    public function registerFailedLogin(): void
+    {
+        $this->failed_login_attempts = ($this->failed_login_attempts ?? 0) + 1;
+
+        if ($this->failed_login_attempts >= self::MAX_LOGIN_ATTEMPTS) {
+            $this->locked_until        = now()->addMinutes(self::LOCKOUT_MINUTES);
+            $this->failed_login_attempts = 0;
+        }
+
+        $this->save();
+    }
+
+    /** Clear lockout counters after a successful login. */
+    public function resetLoginAttempts(): void
+    {
+        if ($this->failed_login_attempts === 0 && $this->locked_until === null) {
+            return;
+        }
+        $this->failed_login_attempts = 0;
+        $this->locked_until          = null;
+        $this->save();
     }
 
     // ── JWT ────────────────────────────────────────────────────────────

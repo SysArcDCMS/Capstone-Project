@@ -43,8 +43,25 @@ class PortalController extends Controller
             'password' => ['required'],
         ]);
 
+        $user = User::where('email', $credentials['email'])->first();
+
+        if ($user && $user->isLocked()) {
+            return back()->withErrors([
+                'email' => 'Account locked due to too many failed attempts. '
+                    ."Try again in {$user->locked_until->diffInMinutes(now())} minute(s).",
+            ])->withInput();
+        }
+
         if (! Auth::guard('web')->attempt($credentials)) {
-            return back()->withErrors(['email' => 'Invalid credentials.'])->withInput();
+            $user?->registerFailedLogin();
+            $remaining = $user
+                ? max(0, User::MAX_LOGIN_ATTEMPTS - ($user->failed_login_attempts ?? 0))
+                : 0;
+            return back()->withErrors([
+                'email' => $remaining > 0
+                    ? "Invalid credentials. {$remaining} more failed attempt(s) before the account is locked for ".User::LOCKOUT_MINUTES.' minutes.'
+                    : 'Invalid credentials. Account locked for '.User::LOCKOUT_MINUTES.' minutes.',
+            ])->withInput();
         }
 
         /** @var User $user */
@@ -63,6 +80,7 @@ class PortalController extends Controller
             return back()->withErrors(['email' => 'Account deactivated.'])->withInput();
         }
 
+        $user->resetLoginAttempts();
         AuditLog::record($user->id, 'web.login', 'users', $user->id);
         $request->session()->regenerate();
         return redirect()->route('dashboard');

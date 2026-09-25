@@ -1,6 +1,8 @@
  - - - - - - - FOR RUNNING THE MOBILE APP - - - - - - -
 
 dart run tool/run.dart
+or
+dart run imraws-mobile/tool/run.dart
 
 
  - - - - - FOR RUNNING THE WEBSITE-BACKEND - - - - - -
@@ -18,3 +20,12 @@ opencode -s ses_f7f26880dffeJgr4qKRR2FvKtu
 
 
 
+| Role | Email | Password |
+|---|---|---|
+| Administrator | `admin@ .local` | `admin123` |
+| Engineer | `engineer.axel@imraws.local` | `engineer123` |
+| Offsite Staff (Metering) | `tl.metering@imraws.local` | `staff123` |
+| Offsite Staff (Billing) | `tl.billing@imraws.local` | `staff123` |
+| Offsite Staff (Water Quality) | `tl.water_quality@imraws.local` | `staff123` |
+| Offsite Staff (Operations) | `tl.operations@imraws.local` | `staff123` |
+| Customer | `robert.j@example.com` | `customer123` |

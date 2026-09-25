@@ -64,6 +64,10 @@ class AuthController extends Controller
 
     /**
      * POST /api/auth/login
+     *
+     * Enforces the lockout rule: after 3 consecutive failed attempts the
+     * account is locked for 15 minutes (423 response). Counters reset on
+     * a successful login.
      */
     public function login(Request $request): JsonResponse
     {
@@ -72,9 +76,20 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $user = User::where('email', $credentials['email'])->first();
+
+        if ($user && $user->isLocked()) {
+            return response()->json([
+                'message' => 'Account locked due to too many failed attempts. '
+                    ."Try again in {$user->locked_until->diffInMinutes(now())} minute(s).",
+            ], 423);
+        }
+
         $token = Auth::guard('api')->attempt($credentials);
 
         if (! $token) {
+            $user?->registerFailedLogin();
+
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);
@@ -88,6 +103,8 @@ class AuthController extends Controller
                 'message' => 'Account is deactivated. Contact your administrator.',
             ], 403);
         }
+
+        $user->resetLoginAttempts();
 
         AuditLog::record(
             userId:    $user->id,
