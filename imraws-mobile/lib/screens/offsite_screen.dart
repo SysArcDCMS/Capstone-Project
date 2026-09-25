@@ -234,6 +234,41 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
     }
   }
 
+  // Accept/Reject/Correct are only shown while the complaint is still
+  // ASSIGNED (not yet accepted) — in-progress ones only get Update Status.
+  List<Widget> _actionButtons(Assignment a) {
+    final canFullAct =
+        a.actionStatus == 'assigned' || a.actionStatus == 'pending';
+    return [
+      if (canFullAct) ...[
+        _ActionButton(
+          label: 'Accept',
+          color: AppColors.green,
+          icon: Icons.check,
+          onTap: () => _accept(a),
+        ),
+        _ActionButton(
+          label: 'Reject',
+          color: AppColors.red,
+          icon: Icons.close,
+          onTap: () => _reject(a),
+        ),
+        _ActionButton(
+          label: 'Correct',
+          color: AppColors.orange,
+          icon: Icons.edit,
+          onTap: () => _correct(a),
+        ),
+      ],
+      _ActionButton(
+        label: 'Update Status',
+        color: AppColors.navy,
+        icon: Icons.update,
+        onTap: () => _updateStatus(a),
+      ),
+    ];
+  }
+
   void _toast(String message, {bool success = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -248,7 +283,17 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
     final user = context.watch<AuthProvider>().user;
     final provider = context.watch<AssignmentProvider>();
     final assignments = provider.assignments;
-    final activeAssignment = assignments.isNotEmpty ? assignments.first : null;
+    const historyStatuses = {'resolved', 'reject', 'reassign'};
+    final activeAssignments = assignments
+        .where((a) =>
+            !historyStatuses.contains(a.actionStatus) &&
+            (a.incident?.status ?? '') != 'resolved')
+        .toList();
+    final historyAssignments = assignments
+        .where((a) =>
+            historyStatuses.contains(a.actionStatus) ||
+            (a.incident?.status ?? '') == 'resolved')
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.pageBg,
@@ -263,8 +308,6 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                 children: [
                   const MayniladLogo(size: 44),
                   const Spacer(),
-                  const NotificationBell(),
-                  const SizedBox(width: 4),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -285,6 +328,8 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(width: 12),
+                  const NotificationBell(),
                 ],
               ),
             ),
@@ -330,193 +375,91 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                         children: [
-                          // Active assignment card
-                          if (activeAssignment != null)
-                            _SectionCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const _SectionLabel('Active Assignment'),
-                                  const SizedBox(height: 12),
-
-                                  Wrap(
-                                    spacing: 8,
-                                    children: [
-                                      _Badge(
-                                        label: activeAssignment.incident?.status?.toUpperCase() ?? 'OPEN',
-                                        color: AppColors.orange,
-                                        bgColor: const Color(0xFFFFF4E5),
-                                        dot: true,
-                                      ),
-                                      if (activeAssignment.incident?.severity == 'High')
-                                        const _Badge(
-                                          label: '▲ High Priority',
-                                          color: AppColors.red,
-                                          bgColor: Color(0xFFFEE2E2),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  Text(
-                                    'Complaint ID #MNL-${activeAssignment.incidentId}',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.navy,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    activeAssignment.assignedAt != null
-                                        ? DateFormat('MMM dd, yyyy · hh:mm a')
-                                            .format(activeAssignment.assignedAt!)
-                                        : '',
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  _InfoRow(
-                                    icon: Icons.location_on_outlined,
-                                    text: activeAssignment.incident?.location ??
-                                        'No location provided',
-                                  ),
-                                  if (activeAssignment.incident?.category != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: _InfoRow(
-                                        icon: Icons.label_outline,
-                                        text: '${activeAssignment.incident!.category}'
-                                            ' · Severity ${activeAssignment.incident!.severity ?? '—'}',
-                                      ),
-                                    ),
-                                  const SizedBox(height: 16),
-
-                                  // Actions
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      _ActionButton(
-                                        label: 'Accept',
-                                        color: AppColors.green,
-                                        icon: Icons.check,
-                                        onTap: () => _accept(activeAssignment),
-                                      ),
-                                      _ActionButton(
-                                        label: 'Reject',
-                                        color: AppColors.red,
-                                        icon: Icons.close,
-                                        onTap: () => _reject(activeAssignment),
-                                      ),
-                                      _ActionButton(
-                                        label: 'Correct',
-                                        color: AppColors.orange,
-                                        icon: Icons.edit,
-                                        onTap: () => _correct(activeAssignment),
-                                      ),
-                                      _ActionButton(
-                                        label: 'Update Status',
-                                        color: AppColors.navy,
-                                        icon: Icons.update,
-                                        onTap: () => _updateStatus(activeAssignment),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pushNamed(
-                                        context, '/viewdetails',
-                                        arguments: activeAssignment),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.navy,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 22, vertical: 10),
-                                      shape: const StadiumBorder(),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text('View Details',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700)),
-                                  ),
-                                ],
+                          // Active complaints list
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: Text(
+                              'ACTIVE COMPLAINTS',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMuted,
+                                letterSpacing: 1.2,
                               ),
                             ),
+                          ),
 
-                          if (activeAssignment == null)
+                          if (activeAssignments.isEmpty)
                             const _SectionCard(
-                              child: Center(child: Text('No active assignments.')),
+                              child: Center(child: Text('No active complaints.')),
                             ),
 
-                          const SizedBox(height: 16),
-
-                          // Task queue
-                          if (assignments.length > 1)
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                'TASK QUEUE',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textMuted,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-
-                          ...assignments.skip(1).map((a) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
+                          ...activeAssignments.map((a) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
                                 child: _SectionCard(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 14),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            _Badge(
-                                              label:
-                                                  '● ${a.incident?.status?.toUpperCase() ?? 'OPEN'}',
+                                      Wrap(
+                                        spacing: 8,
+                                        children: [
+                                          _StatusBadge(
+                                              status: a.incident?.status ?? 'OPEN'),
+                                          if (a.incident?.severity == 'High')
+                                            const _Badge(
+                                              label: '▲ High Priority',
                                               color: AppColors.red,
-                                              bgColor: const Color(0xFFFEE2E2),
+                                              bgColor: Color(0xFFFEE2E2),
                                             ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              '#MNL-${a.incidentId}',
-                                              style: const TextStyle(
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppColors.navy),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(a.incident?.location ?? '',
-                                                style: const TextStyle(
-                                                    fontSize: 10.5,
-                                                    color:
-                                                        AppColors.textMuted)),
-                                            Text(
-                                              a.assignedAt != null
-                                                  ? DateFormat(
-                                                          'MMM dd, yyyy')
-                                                      .format(a.assignedAt!)
-                                                  : '',
-                                              style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color: AppColors.textMuted),
-                                            ),
-                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+
+                                      Text(
+                                        'Complaint ID #MNL-${a.incidentId}',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.navy,
                                         ),
                                       ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        a.assignedAt != null
+                                            ? DateFormat('MMM dd, yyyy · hh:mm a')
+                                                .format(a.assignedAt!)
+                                            : '',
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      _InfoRow(
+                                        icon: Icons.location_on_outlined,
+                                        text: a.incident?.location ??
+                                            'No location provided',
+                                      ),
+                                      if (a.incident?.category != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: _InfoRow(
+                                            icon: Icons.label_outline,
+                                            text: '${a.incident!.category}'
+                                                ' · Severity ${a.incident!.severity ?? '—'}',
+                                          ),
+                                        ),
+                                      const SizedBox(height: 16),
+
+                                      // Actions — accept/reject/correct only while assigned
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: _actionButtons(a),
+                                      ),
+                                      const SizedBox(height: 12),
+
                                       ElevatedButton(
                                         onPressed: () => Navigator.pushNamed(
                                             context, '/viewdetails',
@@ -525,19 +468,76 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                                           backgroundColor: AppColors.navy,
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 14, vertical: 8),
+                                              horizontal: 22, vertical: 10),
                                           shape: const StadiumBorder(),
                                           elevation: 0,
-                                          textStyle: const TextStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w700),
                                         ),
-                                        child: const Text('View Details'),
+                                        child: const Text('View Details',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700)),
                                       ),
                                     ],
                                   ),
                                 ),
                               )),
+
+                          const SizedBox(height: 16),
+
+                          // Complaint history
+                          _SectionCard(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            child: InkWell(
+                              onTap: () => Navigator.pushNamed(
+                                  context, '/offsite-history'),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE6F5EE),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.history,
+                                        color: AppColors.green),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'COMPLAINT HISTORY',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.navy,
+                                            letterSpacing: 0.8,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          historyAssignments.isEmpty
+                                              ? 'No resolved or rejected complaints'
+                                              : '${historyAssignments.length} resolved / rejected complaint(s)',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right,
+                                      color: Color(0xFFC0C9D4), size: 22),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -620,25 +620,11 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 1.2),
-    );
-  }
-}
-
 class _Badge extends StatelessWidget {
   final String label;
   final Color color;
   final Color bgColor;
-  final bool dot;
-  const _Badge({required this.label, required this.color, required this.bgColor, this.dot = false});
+  const _Badge({required this.label, required this.color, required this.bgColor});
 
   @override
   Widget build(BuildContext context) {
@@ -649,14 +635,60 @@ class _Badge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color, width: 1.5),
       ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color = AppColors.orange;
+    Color bgColor = const Color(0xFFFFF4E5);
+
+    final s = status.toUpperCase();
+    if (s == 'RESOLVED') {
+      color = AppColors.green;
+      bgColor = const Color(0xFFE6F5EE);
+    } else if (s == 'ASSIGNED') {
+      color = AppColors.orange;
+      bgColor = const Color(0xFFFFF4E5);
+    } else if (s == 'IN_PROGRESS') {
+      color = AppColors.blueLink;
+      bgColor = const Color(0xFFE7F1FF);
+    } else if (s == 'OPEN' || s == 'REJECTED') {
+      color = AppColors.red;
+      bgColor = const Color(0xFFFEE2E2);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color, width: 1.5),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (dot) ...[
-            Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 5),
-          ],
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            s,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
         ],
       ),
     );

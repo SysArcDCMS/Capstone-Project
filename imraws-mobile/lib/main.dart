@@ -12,6 +12,7 @@ import 'screens/help_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/terms_screen.dart';
 import 'screens/offsite_screen.dart';
+import 'screens/offsite_history_screen.dart';
 import 'screens/view_details_screen.dart';
 import 'screens/about_screen.dart';
 
@@ -82,6 +83,7 @@ class MayniladApp extends StatelessWidget {
         '/account':     (context) => const AccountScreen(),
         '/terms':       (context) => const TermsScreen(),
         '/offsite':     (context) => const OffsiteScreen(),
+        '/offsite-history': (context) => const OffsiteHistoryScreen(),
         '/viewdetails': (context) => const ViewDetailsScreen(),
         '/about':       (context) => const AboutScreen(),
         '/notifications': (context) => const NotificationsScreen(),
