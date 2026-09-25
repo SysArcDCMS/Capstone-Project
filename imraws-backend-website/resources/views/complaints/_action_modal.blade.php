@@ -47,13 +47,14 @@
       <form class="cm-form" id="cm-route-form">
         @csrf
         <div class="cm-section">
-          <span class="cm-label" for="cm-leaders">Route / assign to</span>
+          <span class="cm-label" for="cm-category">Correct category &amp; auto-route</span>
           <div class="cm-row">
-            <select name="team_leader_id" id="cm-leaders" class="cm-select">
-              <option value="">— Select team leader —</option>
+            <select name="category" id="cm-category" class="cm-select">
+              <option value="">— Select category —</option>
             </select>
-            <button type="submit" class="btn-outline" style="padding:0.4rem 1rem;">Route</button>
           </div>
+          <span id="cm-auto" class="cm-auto"></span>
+          <div class="cm-hint">Picking a different category updates the complaint and AI-routes it to the best available staff in that department (no extra click).</div>
         </div>
       </form>
 
@@ -84,6 +85,7 @@
     const routeUrl   = "{{ route('complaints.route', '_ID_') }}".replace(/_ID_/g, '_ID');
     const resolveUrl = "{{ route('complaints.resolve', '_ID_') }}".replace(/_ID_/g, '_ID');
     let currentId = null;
+    let currentCategory = '';
 
     window.openComplaintActions = function (id) {
       currentId = id;
@@ -92,10 +94,11 @@
       const msg = document.getElementById('cm-status-msg');
       msg.hidden = true;
       msg.textContent = '';
+      document.getElementById('cm-auto').textContent = '';
 
       fetch(modalUrl.replace('_ID', id), { headers: { 'X-CSRF-TOKEN': csrfToken } })
         .then(r => r.json())
-        .then(json => fill(json.data))
+        .then(json => { fill(json.data); currentCategory = json.data.category || ''; })
         .catch(() => showMsg('Could not load complaint details.'));
     };
 
@@ -129,11 +132,13 @@
         ? (data.current.team_leader || '—') + ' (' + data.current.action_status.replace('_', ' ') + ')'
         : 'Unassigned';
 
-      const leaders = document.getElementById('cm-leaders');
-      leaders.innerHTML = '<option value="">— Select team leader —</option>' +
-        data.team_leaders.map(t =>
-          `<option value="${t.id}">${t.full_name} · ${(t.department_team || 'all').replace('_', ' ')} · ${t.active_assignments} active</option>`
+      const cats = document.getElementById('cm-category');
+      cats.innerHTML = '<option value="">— Select category —</option>' +
+        data.categories.map(c =>
+          `<option value="${c.category_name}">${c.label}</option>`
         ).join('');
+      cats.value = data.category || '';
+
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
@@ -169,18 +174,36 @@
       });
     });
 
-    // Route
-    document.getElementById('cm-route-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const leaderId = document.getElementById('cm-leaders').value;
-      if (!leaderId) { showMsg('Pick a team leader first.', false); return; }
+    // Route (instant — fires on category change)
+    document.getElementById('cm-category').addEventListener('change', function () {
+      const category = this.value.trim();
+      if (!category || category === currentCategory) return;
+
       const fd = new FormData();
-      fd.append('team_leader_id', leaderId);
+      fd.append('category', category);
       post(routeUrl.replace('_ID', currentId), fd).then(({ ok, json }) => {
-        showMsg(json.message || (ok ? 'Routed.' : 'Failed.'), ok);
-        if (ok && typeof window.onComplaintChanged === 'function') window.onComplaintChanged();
+        if (ok && json.data) {
+          currentCategory = json.data.category || category;
+          updateChip('Category', json.data.category || category);
+          if (json.data.status) {
+            document.getElementById('cm-status').value = json.data.status;
+            updateChip('Status', json.data.status.replace('_', ' '));
+          }
+          document.getElementById('cm-auto').textContent = json.data.team_leader
+            ? 'Auto-assigned to: ' + json.data.team_leader + ' (' + String(json.data.department || '').replace('_', ' ') + ')'
+            : '';
+          if (typeof window.onComplaintChanged === 'function') window.onComplaintChanged();
+        }
+        showMsg(json.message || (ok ? 'Routed to available staff.' : 'Routing failed.'), ok);
       });
     });
+
+    function updateChip(key, value) {
+      document.querySelectorAll('#cm-meta .cm-chip').forEach(chip => {
+        const b = chip.querySelector('b');
+        if (b && b.textContent === key) chip.innerHTML = '<b>' + key + '</b> ' + value;
+      });
+    }
 
     // Resolve
     document.getElementById('cm-resolve-form').addEventListener('submit', function (e) {

@@ -470,6 +470,21 @@ body {
   color: #047857;
 }
 
+.cm-auto {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.cm-hint {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
 .btn-success {
   background: #10b981;
   color: white;

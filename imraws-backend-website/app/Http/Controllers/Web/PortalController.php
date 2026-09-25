@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Category;
+use App\Models\Feedback;
 use App\Models\Incident;
 use App\Models\Notification;
 use App\Models\User;
@@ -142,31 +143,23 @@ class PortalController extends Controller
      * GET /complaints/{id}/modal
      *
      * JSON payload for the complaint action modal: incident summary, the
-     * current assignment and the list of routable team leaders. Leaders
-     * are filtered to the incident category's department when one exists.
+     * current assignment and the active categories the user may correct
+     * the complaint to.
      */
     public function complaintModal(int $id): JsonResponse
     {
         $incident = Incident::with(['customer:id,full_name,email', 'assignments.teamLeader:id,full_name,department_team'])
             ->findOrFail($id);
 
-        $department = ['billing','metering','water_quality','operations'];
-        $leaders = User::query()
-            ->where('role', User::ROLE_OFFSITE_STAFF)
-            ->where('is_team_leader', true)
-            ->where('is_active', true)
-            ->withCount(['assignmentsAsTeamLeader as active_assignments' => function ($q) {
-                $q->whereNotIn('action_status', [
-                    \App\Models\Assignment::ACTION_RESOLVED,
-                    \App\Models\Assignment::ACTION_REJECT,
-                    \App\Models\Assignment::ACTION_REASSIGN,
-                ]);
-            }])
-            ->orderBy('department_team')
-            ->orderBy('full_name')
-            ->get(['id', 'full_name', 'department_team']);
-
         $current = $incident->currentAssignment();
+        $categories = Category::active()
+            ->orderBy('category_name')
+            ->get(['category_name', 'label'])
+            ->map(fn (Category $c) => [
+                'category_name' => $c->category_name,
+                'label'         => $c->displayLabel(),
+            ])
+            ->values();
 
         return response()->json([
             'data' => [
@@ -182,7 +175,7 @@ class PortalController extends Controller
                 'current'     => $current
                     ? ['team_leader' => $current->teamLeader?->full_name, 'action_status' => $current->action_status]
                     : null,
-                'team_leaders' => $leaders,
+                'categories' => $categories,
             ],
         ]);
     }
@@ -227,32 +220,72 @@ class PortalController extends Controller
     /**
      * POST /complaints/{id}/route
      *
-     * Manually (re)route a complaint to a specific team leader. Creates a
-     * new assignment row and flips the incident to "assigned".
+     * Corrects the complaint category (optionally — persists the change,
+     * logs an AuditLog and writes a Feedback row as a gold label for NLP
+     * retraining) then auto-routes via AI to the best available staff
+     * member in that category's department. Creates a new assignment row
+     * and flips the incident to "assigned".
      */
     public function complaintRoute(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([
-            'team_leader_id' => ['required', 'integer',
-                Rule::exists('users', 'id')->where(fn ($q) =>
-                    $q->where('role', User::ROLE_OFFSITE_STAFF)->where('is_team_leader', true)->where('is_active', true)),
+            'category' => ['required', 'string',
+                Rule::exists('tbl_categories', 'category_name')->where('is_active', true),
             ],
         ]);
 
         $incident = Incident::findOrFail($id);
-        $assignment = (new \App\Services\AiRoutingService())
-            ->reassign($incident, $data['team_leader_id']);
+        $categoryChanged = $incident->category !== $data['category'];
+
+        if ($categoryChanged) {
+            $old = $incident->only(['category', 'severity']);
+            $incident->category = $data['category'];
+            $incident->updated_by = auth()->id();
+            $incident->save();
+
+            AuditLog::record(auth()->id(), 'web.correct_category', 'tbl_incidents', $incident->id,
+                oldValue: ['category' => $old['category']], newValue: ['category' => $incident->category]);
+
+            // Gold label for NLP retraining (verbatim "correct classification" flow).
+            Feedback::create([
+                'incident_id'        => $incident->id,
+                'engineer_id'        => auth()->id(),
+                'original_category'  => $old['category'],
+                'original_severity'  => $old['severity'],
+                'composite_score'    => $incident->composite_score,
+                'action_taken'       => Feedback::ACTION_CORRECT,
+                'corrected_category' => $data['category'],
+                'corrected_severity' => $incident->severity,
+                'feedback_timestamp' => now(),
+                'review_timestamp'   => now(),
+                'used_for_training'  => true,
+                'created_by'         => auth()->id(),
+                'updated_by'         => auth()->id(),
+            ]);
+        }
+
+        $assignment = (new \App\Services\AiRoutingService())->route($incident);
+
+        if (! $assignment) {
+            return response()->json(['message' => 'No available staff to assign right now.'], 422);
+        }
 
         AuditLog::record(auth()->id(), 'web.route', 'tbl_assignments', $assignment->id,
-            newValue: ['incident_id' => $incident->id, 'team_leader_id' => $data['team_leader_id']]);
+            newValue: ['incident_id' => $incident->id, 'team_leader_id' => $assignment->team_leader_id, 'category' => $incident->category]);
 
         return response()->json([
-            'message' => "Complaint #{$incident->id} routed to ".($assignment->teamLeader?->full_name ?? 'team leader').'.',
+            'message' => $categoryChanged
+                ? "Category corrected to {$incident->category} and routed to ".($assignment->teamLeader?->full_name ?? 'available staff').'.'
+                : "Complaint #{$incident->id} already {$incident->category}; routed to ".($assignment->teamLeader?->full_name ?? 'available staff').'.',
             'data'    => [
-                'id'              => $incident->id,
-                'status'          => $incident->status,
-                'assignment_id'   => $assignment->id,
-                'team_leader_id'  => $assignment->team_leader_id,
+                'id'               => $incident->id,
+                'status'           => $incident->status,
+                'category'         => $incident->category,
+                'category_changed' => $categoryChanged,
+                'assignment_id'    => $assignment->id,
+                'team_leader_id'   => $assignment->team_leader_id,
+                'team_leader'      => $assignment->teamLeader?->full_name,
+                'department'       => $assignment->teamLeader?->department_team,
             ],
         ]);
     }
