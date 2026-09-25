@@ -217,7 +217,7 @@ class _OffsiteHistoryScreenState extends State<OffsiteHistoryScreen> {
             ),
 
             MayniladBottomNav(
-              active: NavTab.home,
+              active: NavTab.history,
               onHome: () =>
                   context.read<AuthProvider>().navigateToHome(context),
               onReport: () => Navigator.pushNamed(context, '/complaint'),

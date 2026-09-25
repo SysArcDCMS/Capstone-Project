@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-enum NavTab { home, settings }
+enum NavTab { home, history, settings }
 
 class MayniladBottomNav extends StatelessWidget {
   final NavTab active;
   final VoidCallback onHome;
   final VoidCallback onReport;
   final VoidCallback onSettings;
+  final VoidCallback? onHistory;
   final bool isCustomer;
 
   const MayniladBottomNav({
@@ -16,11 +17,14 @@ class MayniladBottomNav extends StatelessWidget {
     required this.onHome,
     required this.onReport,
     required this.onSettings,
+    this.onHistory,
     this.isCustomer = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final historyTap =
+        onHistory ?? () => Navigator.pushNamed(context, '/offsite-history');
     return Container(
       height: 64,
       color: AppColors.navy,
@@ -28,7 +32,7 @@ class MayniladBottomNav extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Home + Settings tabs
+          // Home + History + Settings tabs
           Positioned.fill(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -41,6 +45,14 @@ class MayniladBottomNav extends StatelessWidget {
                   onTap: onHome,
                 ),
                 if (isCustomer) const SizedBox(width: 64), // space for FAB
+                if (!isCustomer)
+                  _NavItem(
+                    icon: Icons.history,
+                    iconActive: Icons.history,
+                    label: 'History',
+                    active: active == NavTab.history,
+                    onTap: historyTap,
+                  ),
                 _NavItem(
                   icon: Icons.settings_outlined,
                   iconActive: Icons.settings,
