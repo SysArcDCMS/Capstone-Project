@@ -44,8 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const MayniladLogo(size: 44),
                   const Spacer(),
-                  const NotificationBell(),
-                  const SizedBox(width: 4),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -66,6 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(width: 12),
+                  const NotificationBell(),
                 ],
               ),
             ),
@@ -199,61 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           const SizedBox(height: 14),
 
-                          // My Account card
-                          _Card(
-                            child: InkWell(
-                              onTap: () => Navigator.pushNamed(context, '/account'),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Padding(
-                                padding: const EdgeInsets.all(2),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: AppColors.navy,
-                                      child: Text(
-                                        user?.fullName.isNotEmpty == true
-                                            ? user!.fullName[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'MY ACCOUNT',
-                                            style: TextStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.textMuted,
-                                              letterSpacing: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            user?.fullName ?? 'Account',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.navy,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(Icons.chevron_right, color: Color(0xFFC0C9D4), size: 22),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
               ),

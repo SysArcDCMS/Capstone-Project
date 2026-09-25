@@ -13,6 +13,11 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_SettingsItem>[
       _SettingsItem(
+        icon: Icons.person_outline,
+        label: 'Account',
+        onTap: () => Navigator.pushNamed(context, '/account'),
+      ),
+      _SettingsItem(
         icon: Icons.help_outline,
         label: 'Help',
         onTap: () => Navigator.pushNamed(context, '/help'),
