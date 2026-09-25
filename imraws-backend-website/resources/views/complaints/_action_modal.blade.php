@@ -78,7 +78,7 @@
 <script>
   (function () {
     const overlay = document.getElementById('complaint-modal');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getContent();
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const modalUrl   = "{{ route('complaints.modal', '_ID_') }}".replace(/_ID_/g, '_ID');
     const statusUrl  = "{{ route('complaints.updateStatus', '_ID_') }}".replace(/_ID_/g, '_ID');
     const routeUrl   = "{{ route('complaints.route', '_ID_') }}".replace(/_ID_/g, '_ID');
