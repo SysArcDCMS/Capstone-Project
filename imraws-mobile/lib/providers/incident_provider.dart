@@ -40,15 +40,21 @@ class IncidentProvider with ChangeNotifier {
   /// classification in `analysis`.
   Future<Map<String, dynamic>> submitComplaint(
     String description,
-    String? location,
-  ) async {
+    String? location, {
+    double? latitude,
+    double? longitude,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result =
-          await _incidentService.submitComplaint(description: description, location: location);
+      final result = await _incidentService.submitComplaint(
+        description: description,
+        location: location,
+        latitude: latitude,
+        longitude: longitude,
+      );
       _lastAnalysis = result['analysis'] is Map<String, dynamic>
           ? ComplaintAnalysis.fromJson(result['analysis'])
           : null;

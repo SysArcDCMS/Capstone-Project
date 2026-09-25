@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../providers/auth_provider.dart';
 import '../providers/incident_provider.dart';
+import 'map_picker_screen.dart';
 
 class ComplaintScreen extends StatefulWidget {
   const ComplaintScreen({super.key});
@@ -16,12 +18,25 @@ class ComplaintScreen extends StatefulWidget {
 class _ComplaintScreenState extends State<ComplaintScreen> {
   final _controller = TextEditingController();
   final _locationController = TextEditingController();
+  LatLng? _pickedLocation;
 
   @override
   void dispose() {
     _controller.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(initial: _pickedLocation),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _pickedLocation = result);
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -39,6 +54,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
       _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim(),
+      latitude: _pickedLocation?.latitude,
+      longitude: _pickedLocation?.longitude,
     );
 
     if (!mounted) return;
@@ -197,6 +214,59 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(999),
                             borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Pin on map (draggable Google Maps marker).
+                      InkWell(
+                        onTap: _pickLocation,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _pickedLocation == null
+                                ? AppColors.fieldBg
+                                : const Color(0xFFE8F0FB),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _pickedLocation == null
+                                    ? Icons.location_on_outlined
+                                    : Icons.location_on,
+                                size: 18,
+                                color: _pickedLocation == null
+                                    ? AppColors.textMuted
+                                    : AppColors.navy,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _pickedLocation == null
+                                      ? 'Set Location on Map (optional)'
+                                      : 'Pin at ${_pickedLocation!.latitude.toStringAsFixed(5)}, ${_pickedLocation!.longitude.toStringAsFixed(5)}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: _pickedLocation == null
+                                        ? AppColors.textMuted
+                                        : AppColors.navyDark,
+                                    fontWeight: _pickedLocation == null
+                                        ? FontWeight.w400
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (_pickedLocation != null)
+                                GestureDetector(
+                                  onTap: () => setState(() => _pickedLocation = null),
+                                  child: const Icon(Icons.close, size: 16, color: AppColors.textMuted),
+                                ),
+                              if (_pickedLocation == null)
+                                const Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
+                            ],
                           ),
                         ),
                       ),

@@ -1,10 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Maps picker: device location for the "Use My Location" button -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="mobile_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
+        <!-- Google Maps API key — replace YOUR_GOOGLE_MAPS_API_KEY with your
+             real key, or pass --dart-define=GOOGLE_MAPS_API_KEY=... at build.
+             See HOW TO RUN THE SYSTEM.txt. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -4,11 +4,20 @@ class ApiConfig {
     defaultValue: 'http://192.168.254.111:8000/api',
   );
 
+  // Google Maps key passed at build time:
+  //   flutter run --dart-define=GOOGLE_MAPS_API_KEY=AIza...
+  // The picker also reads the native key set in AndroidManifest.xml.
+  static const String googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
+
   // ── Auth ────────────────────────────────────────────────────────────
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String me = '/auth/me';
   static const String profile = '/auth/profile';
+  static const String changePassword = '/auth/change-password';
   static const String logout = '/auth/logout';
   static const String refresh = '/auth/refresh';
 

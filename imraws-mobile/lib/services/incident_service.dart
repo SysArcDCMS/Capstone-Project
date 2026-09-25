@@ -62,11 +62,15 @@ class IncidentService {
   Future<Map<String, dynamic>> submitComplaint({
     required String description,
     String? location,
+    double? latitude,
+    double? longitude,
   }) async {
     final data = await _api.post(ApiConfig.incidents, data: {
       'description': description.trim(),
       if (location != null && location.trim().isNotEmpty)
         'location': location.trim(),
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     });
     if (data is! Map<String, dynamic>) {
       throw ApiException(0, 'Could not submit complaint.');
