@@ -363,17 +363,31 @@ class PortalController extends Controller
 
     public function users(Request $request)
     {
-        $query = User::orderByDesc('created_at');
+        /** @var User $actor */
+        $actor = auth()->user();
+        $isEngineer = $actor->isEngineer();
+
+        $query = User::query();
+        if ($isEngineer) {
+            // Engineers see a read-only list scoped to their department only.
+            $query->where('department_team', $actor->department_team);
+        }
+        $query->orderByDesc('created_at');
+
         if ($r = $request->query('role')) $query->where('role', $r);
         if ($q = $request->query('q')) {
             $query->where(fn($w) => $w->where('full_name','ilike',"%$q%")->orWhere('email','ilike',"%$q%"));
         }
         $users = $query->paginate(20);
 
+        $statsQuery = User::query();
+        if ($isEngineer) {
+            $statsQuery->where('department_team', $actor->department_team);
+        }
         $stats = [
-            'total'   => User::count(),
-            'active'  => User::where('is_active', true)->count(),
-            'by_role' => User::selectRaw('role, COUNT(*) as c')->groupBy('role')->pluck('c','role'),
+            'total'   => (clone $statsQuery)->count(),
+            'active'  => (clone $statsQuery)->where('is_active', true)->count(),
+            'by_role' => (clone $statsQuery)->selectRaw('role, COUNT(*) as c')->groupBy('role')->pluck('c','role'),
         ];
 
         return view('users.index', ['users' => $users, 'stats' => $stats]);

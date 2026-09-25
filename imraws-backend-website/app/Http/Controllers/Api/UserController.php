@@ -26,9 +26,17 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        /** @var User $actor */
+        $actor = $request->user();
+
         $query = User::query()
-            ->select('id', 'full_name', 'email', 'role', 'department_team', 'is_active', 'is_team_leader', 'created_at')
-            ->orderByDesc('created_at');
+            ->select('id', 'full_name', 'email', 'role', 'department_team', 'is_active', 'is_team_leader', 'created_at');
+
+        if ($actor->isEngineer()) {
+            // Engineers see a read-only list scoped to their department only.
+            $query->where('department_team', $actor->department_team);
+        }
+        $query->orderByDesc('created_at');
 
         if ($role = $request->query('role')) {
             $query->where('role', $role);
@@ -102,9 +110,15 @@ class UserController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
+        /** @var User $actor */
+        $actor = $request->user();
+
         $user = User::find($id);
         if (! $user) {
             return response()->json(['message' => 'User not found.'], 404);
+        }
+        if ($actor->isEngineer() && $user->department_team !== $actor->department_team) {
+            return response()->json(['message' => 'Forbidden.'], 403);
         }
         return response()->json(['data' => $user]);
     }

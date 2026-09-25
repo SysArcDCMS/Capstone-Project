@@ -33,11 +33,15 @@ Route::middleware('auth:web')->group(function () {
 
     // Users
     Route::get('/users',                  [PortalController::class, 'users'])->name('users.index');
-    Route::get('/users/create',           [PortalController::class, 'userCreate'])->name('users.create');
-    Route::post('/users',                 [PortalController::class, 'userStore'])->name('users.store');
-    Route::get('/users/{id}/edit',        [PortalController::class, 'userEdit'])->whereNumber('id')->name('users.edit');
-    Route::put('/users/{id}',             [PortalController::class, 'userUpdate'])->whereNumber('id')->name('users.update');
-    Route::patch('/users/{id}/deactivate',[PortalController::class, 'userDeactivate'])->whereNumber('id')->name('users.deactivate');
+    // Add/Edit/Deactivate are administrator-only; engineers get a read-only,
+    // department-scoped list (capstone role matrix).
+    Route::middleware('role:administrator')->group(function () {
+        Route::get('/users/create',           [PortalController::class, 'userCreate'])->name('users.create');
+        Route::post('/users',                 [PortalController::class, 'userStore'])->name('users.store');
+        Route::get('/users/{id}/edit',        [PortalController::class, 'userEdit'])->whereNumber('id')->name('users.edit');
+        Route::put('/users/{id}',             [PortalController::class, 'userUpdate'])->whereNumber('id')->name('users.update');
+        Route::patch('/users/{id}/deactivate',[PortalController::class, 'userDeactivate'])->whereNumber('id')->name('users.deactivate');
+    });
 
     // Categories
     Route::get('/categories', [PortalController::class, 'categories'])->name('categories.index');

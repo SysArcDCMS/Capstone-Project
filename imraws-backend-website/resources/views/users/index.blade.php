@@ -24,7 +24,13 @@
       </select>
       <button type="submit" class="btn-primary" style="padding:0.4rem 1rem;">Filter</button>
     </form>
-    <a href="{{ route('users.create') }}" class="btn-primary"><i data-lucide="user-plus"></i> Add User</a>
+    @if(auth()->user()->isAdministrator())
+      <a href="{{ route('users.create') }}" class="btn-primary"><i data-lucide="user-plus"></i> Add User</a>
+    @else
+      <span style="font-size:0.8rem; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.5rem; padding:0.4rem 0.75rem;">
+        <i data-lucide="info" style="width:0.9rem;height:0.9rem;"></i> Read-only · scoped to your department ({{ ucwords(str_replace('_',' ', auth()->user()->department_team ?? '')) }})
+      </span>
+    @endif
   </div>
 
   <div class="table-wrap mt-3">
