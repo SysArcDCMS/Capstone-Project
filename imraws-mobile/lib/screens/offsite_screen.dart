@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/notification_bell.dart';
 import '../providers/auth_provider.dart';
 import '../providers/incident_provider.dart';
 import '../providers/assignment_provider.dart';
@@ -252,6 +253,8 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                 children: [
                   const MayniladLogo(size: 44),
                   const Spacer(),
+                  const NotificationBell(),
+                  const SizedBox(width: 4),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
