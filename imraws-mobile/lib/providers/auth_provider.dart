@@ -123,6 +123,34 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return {'success': true, 'message': 'Password updated successfully.'};
+    } on ApiException catch (e) {
+      _isLoading = false;
+      _error = e.message;
+      notifyListeners();
+      return {'success': false, 'message': ApiService.flattenValidation(e)};
+    } catch (_) {
+      _isLoading = false;
+      _error = 'Something went wrong. Please try again.';
+      notifyListeners();
+      return {'success': false, 'message': _error!};
+    }
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     _user = null;

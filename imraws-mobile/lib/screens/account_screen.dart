@@ -19,6 +19,12 @@ class _AccountScreenState extends State<AccountScreen> {
   late TextEditingController _contactController;
   late TextEditingController _addressController;
   final _passwordController = TextEditingController(text: '••••••••••');
+  final _currentPwController = TextEditingController();
+  final _newPwController = TextEditingController();
+  final _confirmPwController = TextEditingController();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -37,6 +43,9 @@ class _AccountScreenState extends State<AccountScreen> {
     _contactController.dispose();
     _addressController.dispose();
     _passwordController.dispose();
+    _currentPwController.dispose();
+    _newPwController.dispose();
+    _confirmPwController.dispose();
     super.dispose();
   }
 
@@ -55,6 +64,82 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         backgroundColor:
             result['success'] == true ? AppColors.navy : AppColors.red,
+      ),
+    );
+  }
+
+  Future<void> _handleChangePassword() async {
+    final current = _currentPwController.text;
+    final next = _newPwController.text;
+    final confirm = _confirmPwController.text;
+
+    if (current.isEmpty) {
+      _toast('Enter your current password.', success: false);
+      return;
+    }
+    if (next.length < 8) {
+      _toast('New password must be at least 8 characters.', success: false);
+      return;
+    }
+    if (next != confirm) {
+      _toast('New passwords do not match.', success: false);
+      return;
+    }
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password?'),
+        content: const Text(
+          'Your password will be updated. You can continue using the app right away.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true) return;
+    if (!mounted) return;
+
+    final result = await context.read<AuthProvider>().changePassword(
+          currentPassword: current,
+          newPassword: next,
+        );
+    if (!mounted) return;
+    if (result['success'] == true) {
+      _currentPwController.clear();
+      _newPwController.clear();
+      _confirmPwController.clear();
+    }
+    _toast(
+      result['message'] as String,
+      success: result['success'] == true,
+    );
+  }
+
+  Widget _visibilityIcon(bool obscure, VoidCallback onTap) {
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(
+        obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+        size: 20,
+        color: const Color(0xFF94A3B8),
+      ),
+    );
+  }
+
+  void _toast(String message, {bool success = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? AppColors.navy : AppColors.red,
       ),
     );
   }
@@ -203,9 +288,81 @@ class _AccountScreenState extends State<AccountScreen> {
                           ),
                         ),
                       ),
-                      
+
+                      const SizedBox(height: 22),
+
+                      const Divider(color: AppColors.divider, height: 1),
+                      const SizedBox(height: 18),
+
+                      const Text(
+                        'CHANGE PASSWORD',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textMuted,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      PillInput(
+                        label: 'Current Password',
+                        controller: _currentPwController,
+                        obscureText: _obscureCurrent,
+                        italic: true,
+                        suffixIcon: _visibilityIcon(
+                          _obscureCurrent,
+                          () => setState(() => _obscureCurrent = !_obscureCurrent),
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+
+                      PillInput(
+                        label: 'New Password',
+                        controller: _newPwController,
+                        obscureText: _obscureNew,
+                        italic: true,
+                        suffixIcon: _visibilityIcon(
+                          _obscureNew,
+                          () => setState(() => _obscureNew = !_obscureNew),
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+
+                      PillInput(
+                        label: 'Confirm New Password',
+                        controller: _confirmPwController,
+                        obscureText: _obscureConfirm,
+                        italic: true,
+                        suffixIcon: _visibilityIcon(
+                          _obscureConfirm,
+                          () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _handleChangePassword,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: const StadiumBorder(),
+                            side: const BorderSide(color: AppColors.navy),
+                          ),
+                          child: const Text(
+                            'UPDATE PASSWORD',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.navy,
+                            ),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 16),
-                      
+
                       // Logout button
                       SizedBox(
                         width: double.infinity,

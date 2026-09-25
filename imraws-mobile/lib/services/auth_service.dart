@@ -68,6 +68,18 @@ class AuthService {
     return User.fromJson(userMap);
   }
 
+  /// POST /api/auth/change-password
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _api.post(ApiConfig.changePassword, data: {
+      'current_password': currentPassword,
+      'password': newPassword,
+      'password_confirmation': newPassword,
+    });
+  }
+
   /// POST /api/auth/logout
   Future<void> logout() async {
     try {
