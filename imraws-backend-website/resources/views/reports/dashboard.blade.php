@@ -1,0 +1,72 @@
+@extends('layouts.app')
+@section('title', 'Reports')
+@section('content')
+  <div class="page-header">
+    <h1>Reports & Analytics</h1>
+    <p>System-wide incident trends, classification accuracy, and team performance</p>
+  </div>
+
+  @php $d = $data; @endphp
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="stat-card">
+      <div><div class="stat-label">Total Incidents ({{ $d['window_days'] }}d)</div><div class="stat-value">{{ $d['incidents']['total'] }}</div></div>
+      <span class="stat-icon" style="color:#3b82f6"><i data-lucide="info"></i></span>
+    </div>
+    <div class="stat-card">
+      <div><div class="stat-label">HITL Corrections</div><div class="stat-value">{{ $d['feedback']['corrections'] }}</div></div>
+      <span class="stat-icon" style="color:#8b5cf6"><i data-lucide="git-pull-request"></i></span>
+    </div>
+    <div class="stat-card">
+      <div><div class="stat-label">Correction Rate</div><div class="stat-value">{{ round($d['feedback']['correction_rate']*100,1) }}%</div></div>
+      <span class="stat-icon" style="color:#f59e0b"><i data-lucide="trending-up"></i></span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4 mt-4">
+    <div class="table-wrap p-5">
+      <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">By Status</h3>
+      <table><thead><tr><th>Status</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+        @foreach($d['incidents']['by_status'] as $k => $v)
+          <tr><td>{{ ucwords(str_replace('_',' ',$k)) }}</td><td style="text-align:right;font-weight:600;">{{ $v }}</td></tr>
+        @endforeach
+      </tbody></table>
+    </div>
+    <div class="table-wrap p-5">
+      <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">Avg Resolution (hours) by Dept</h3>
+      <table><thead><tr><th>Department</th><th style="text-align:right;">Avg Hours (Resolved)</th></tr></thead><tbody>
+        @forelse($d['resolution']['avg_hours_by_department'] as $r)
+          <tr><td>{{ ucwords(str_replace('_',' ',$r['department_team'] ?? '—')) }}</td><td style="text-align:right;font-weight:600;">{{ number_format((float) $r['avg_hours'], 2) }}h ({{ $r['total_resolved'] }} resolved)</td></tr>
+        @empty
+          <tr><td colspan="2" style="color:#94a3b8;">No resolved incidents yet.</td></tr>
+        @endforelse
+      </tbody></table>
+    </div>
+  </div>
+
+  <div class="table-wrap p-5 mt-4">
+    <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">By Category</h3>
+    <table><thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+      @php $colors = $d['category_colors'] ?? []; @endphp
+      @forelse($d['incidents']['by_category'] ?? [] as $k => $v)
+        <tr>
+          <td><span class="category-dot" style="background:{{ $colors[$k] ?? '#3b82f6' }};"></span>{{ $k }}</td>
+          <td style="text-align:right;font-weight:600;">{{ $v }}</td>
+        </tr>
+      @empty
+        <tr><td colspan="2" style="color:#94a3b8;">No categorized incidents yet.</td></tr>
+      @endforelse
+    </tbody></table>
+  </div>
+
+  <div class="table-wrap p-5 mt-4">
+    <h3 style="font-weight:600;color:#1e293b;margin-bottom:0.75rem;">Top Misclassification Patterns</h3>
+    <table><thead><tr><th>From</th><th>To</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+      @forelse($d['feedback']['top_correction_pairs'] as $p)
+        <tr><td>{{ $p->original_category }}</td><td>{{ $p->corrected_category }}</td><td style="text-align:right;">{{ $p->count }}</td></tr>
+      @empty
+        <tr><td colspan="3" style="color:#94a3b8;text-align:center;padding:1rem;">No corrections logged yet. Test the HITL flow by submitting a complaint and correcting it as a Team Leader.</td></tr>
+      @endforelse
+    </tbody></table>
+  </div>
+@endsection
