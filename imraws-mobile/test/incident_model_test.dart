@@ -90,6 +90,105 @@ void main() {
     });
   });
 
+  // Regression: tbl_incidents.latitude/longitude are decimal(10,7), and PDO
+  // serialises Postgres `numeric` as a JSON *string*. The original
+  // `(json['latitude'] as num?)` cast threw a TypeError on such a row, which
+  // propagated out of the whole list parse and emptied the customer's
+  // complaint list.
+  group('decimal columns arriving as strings', () {
+    test('coordinates sent as strings are parsed as numbers', () {
+      final incident = Incident.fromJson({
+        'id': 42,
+        'customer_id': 7,
+        'status': 'open',
+        'latitude': '14.5712000',
+        'longitude': '121.0342000',
+      });
+
+      expect(incident.latitude, 14.5712);
+      expect(incident.longitude, 121.0342);
+    });
+
+    test('a decimal string never aborts the parse of a list payload', () {
+      // The shape a customer actually receives from GET /api/incidents.
+      final payload = [
+        {'id': 1, 'customer_id': 7, 'status': 'open'},
+        {
+          'id': 2,
+          'customer_id': 7,
+          'status': 'open',
+          'latitude': '14.5712000',
+          'longitude': '121.0342000',
+          'composite_score': '72.5',
+        },
+      ];
+
+      final incidents = payload
+          .map((json) => Incident.fromJson(json))
+          .toList(growable: false);
+
+      expect(incidents, hasLength(2));
+      expect(incidents.first.latitude, isNull);
+      expect(incidents.last.compositeScore, 72.5);
+    });
+
+    test('a non-numeric value degrades to null instead of throwing', () {
+      final incident = Incident.fromJson({
+        'id': 42,
+        'latitude': 'not-a-number',
+        'composite_score': '',
+      });
+
+      expect(incident.latitude, isNull);
+      expect(incident.compositeScore, isNull);
+    });
+
+    test('numeric strings are read for ids, notes and file sizes too', () {
+      final incident = Incident.fromJson({
+        'id': '42',
+        'customer_id': '7',
+        'status': 'open',
+        'composite_score': '88.25',
+        'customer': {'id': '7', 'full_name': 'Robert Dela Cruz'},
+        'assignments': [
+          {
+            'id': '9',
+            'incident_id': '42',
+            'team_leader_id': '3',
+            'action_status': 'assigned',
+          },
+        ],
+        'attachments': [
+          {
+            'id': '5',
+            'incident_id': '42',
+            'file_size': '20480',
+            'url': '/storage/attachments/42/proof.jpg',
+          },
+        ],
+      });
+
+      expect(incident.id, 42);
+      expect(incident.customerId, 7);
+      expect(incident.compositeScore, 88.25);
+      expect(incident.customer?.id, 7);
+      expect(incident.assignments.first.id, 9);
+      expect(incident.assignments.first.teamLeaderId, 3);
+      expect(incident.attachments.first.fileSize, 20480);
+    });
+
+    test('a real number still parses unchanged', () {
+      final incident = Incident.fromJson({
+        'id': 42,
+        'latitude': 14.5712,
+        'longitude': 121.0342,
+      });
+
+      expect(incident.latitude, 14.5712);
+      expect(incident.longitude, 121.0342);
+    });
+  });
+
   group('resolution note handover', () {
     Incident incidentWith(List<Map<String, dynamic>> assignments) {
       return Incident.fromJson({

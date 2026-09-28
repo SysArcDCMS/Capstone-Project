@@ -1,4 +1,5 @@
 import 'incident_model.dart';
+import 'json_parsing.dart';
 import 'user_ref.dart';
 
 /// Assignment — matches `tbl_assignments` fields returned by the Laravel API.
@@ -46,10 +47,10 @@ class Assignment {
 
   factory Assignment.fromJson(Map<String, dynamic> json) {
     return Assignment(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      incidentId: (json['incident_id'] as num?)?.toInt() ?? 0,
-      teamLeaderId: (json['team_leader_id'] as num?)?.toInt() ?? 0,
-      engineerReviewId: (json['engineer_review_id'] as num?)?.toInt(),
+      id: jsonAsInt(json['id']) ?? 0,
+      incidentId: jsonAsInt(json['incident_id']) ?? 0,
+      teamLeaderId: jsonAsInt(json['team_leader_id']) ?? 0,
+      engineerReviewId: jsonAsInt(json['engineer_review_id']),
       actionStatus: json['action_status']?.toString(),
       resolutionNotes: json['resolution_notes']?.toString(),
       assignedAt: json['assigned_at'] != null

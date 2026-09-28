@@ -1,5 +1,6 @@
 import 'assignment_model.dart';
 import 'attachment_model.dart';
+import 'json_parsing.dart';
 
 /// Incident — matches `tbl_incidents` fields returned by the Laravel API.
 ///
@@ -85,15 +86,15 @@ class Incident {
 
   factory Incident.fromJson(Map<String, dynamic> json) {
     return Incident(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      customerId: (json['customer_id'] as num?)?.toInt() ?? 0,
+      id: jsonAsInt(json['id']) ?? 0,
+      customerId: jsonAsInt(json['customer_id']) ?? 0,
       description: json['description']?.toString(),
       location: json['location']?.toString(),
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: jsonAsDouble(json['latitude']),
+      longitude: jsonAsDouble(json['longitude']),
       category: json['category']?.toString(),
       severity: json['severity']?.toString(),
-      compositeScore: (json['composite_score'] as num?)?.toDouble(),
+      compositeScore: jsonAsDouble(json['composite_score']),
       status: json['status']?.toString(),
       resolutionNotes: json['resolution_notes']?.toString(),
       submittedAt: json['submitted_at'] != null
@@ -105,19 +106,10 @@ class Incident {
       customer: json['customer'] is Map<String, dynamic>
           ? IncidentCustomer.fromJson(json['customer'])
           : null,
-      assignments: _listOf(json['assignments'], Assignment.fromJson),
-      attachments: _listOf(json['attachments'], Attachment.fromJson),
+      assignments: jsonListOf(json['assignments'], Assignment.fromJson),
+      attachments: jsonListOf(json['attachments'], Attachment.fromJson),
     );
   }
-}
-
-/// Parses a Laravel relation array, tolerating a missing or null key.
-List<T> _listOf<T>(dynamic raw, T Function(Map<String, dynamic>) parse) {
-  if (raw is! List) return const [];
-  return raw
-      .whereType<Map<String, dynamic>>()
-      .map(parse)
-      .toList(growable: false);
 }
 
 /// Nested `customer` object on incident responses.
@@ -138,7 +130,7 @@ class IncidentCustomer {
 
   factory IncidentCustomer.fromJson(Map<String, dynamic> json) {
     return IncidentCustomer(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: jsonAsInt(json['id']) ?? 0,
       fullName: json['full_name']?.toString() ?? '',
       email: json['email']?.toString(),
       contactNo: json['contact_no']?.toString(),
@@ -168,11 +160,10 @@ class ComplaintAnalysis {
   factory ComplaintAnalysis.fromJson(Map<String, dynamic> json) {
     return ComplaintAnalysis(
       category: json['category']?.toString(),
-      categoryConfidence:
-          (json['category_confidence'] as num?)?.toDouble() ?? 0,
+      categoryConfidence: jsonAsDouble(json['category_confidence']) ?? 0,
       sentiment: json['sentiment']?.toString(),
-      sentimentScore: (json['sentiment_score'] as num?)?.toDouble() ?? 0,
-      compositeScore: (json['composite_score'] as num?)?.toDouble() ?? 0,
+      sentimentScore: jsonAsDouble(json['sentiment_score']) ?? 0,
+      compositeScore: jsonAsDouble(json['composite_score']) ?? 0,
       severity: json['severity']?.toString(),
     );
   }

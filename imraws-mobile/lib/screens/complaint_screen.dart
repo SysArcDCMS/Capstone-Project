@@ -21,6 +21,11 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   final _locationController = TextEditingController();
   LatLng? _pickedLocation;
 
+  /// Street text resolved by the picker for the current pin. Kept apart from
+  /// [_locationController] so the summary row can echo what the pin resolved to
+  /// without echoing coordinates.
+  String? _pickedAddress;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -42,6 +47,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         // user typed themselves: a typed barangay or landmark is more specific
         // than whatever the device geocoder infers from the coordinates.
         final resolved = result.address;
+        _pickedAddress =
+            (resolved == null || resolved.isEmpty) ? null : resolved;
         if (resolved != null &&
             resolved.isNotEmpty &&
             _locationController.text.trim().isEmpty) {
@@ -288,7 +295,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                                 child: Text(
                                   _pickedLocation == null
                                       ? 'Set Location on Map (optional)'
-                                      : 'Pin at ${_pickedLocation!.latitude.toStringAsFixed(5)}, ${_pickedLocation!.longitude.toStringAsFixed(5)}',
+                                      : (_pickedAddress ??
+                                          'Location set on map'),
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: _pickedLocation == null
@@ -302,8 +310,10 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                               ),
                               if (_pickedLocation != null)
                                 GestureDetector(
-                                  onTap: () =>
-                                      setState(() => _pickedLocation = null),
+                                  onTap: () => setState(() {
+                                    _pickedLocation = null;
+                                    _pickedAddress = null;
+                                  }),
                                   child: const Icon(Icons.close,
                                       size: 16, color: AppColors.textMuted),
                                 ),

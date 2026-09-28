@@ -1,3 +1,5 @@
+import 'json_parsing.dart';
+
 /// Incident attachment — matches `tbl_incident_attachments` API fields.
 class Attachment {
   final int id;
@@ -24,12 +26,12 @@ class Attachment {
 
   factory Attachment.fromJson(Map<String, dynamic> json) {
     return Attachment(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      incidentId: (json['incident_id'] as num?)?.toInt() ?? 0,
+      id: jsonAsInt(json['id']) ?? 0,
+      incidentId: jsonAsInt(json['incident_id']) ?? 0,
       filePath: json['file_path']?.toString(),
       originalName: json['original_name']?.toString(),
       mimeType: json['mime_type']?.toString(),
-      fileSize: (json['file_size'] as num?)?.toInt(),
+      fileSize: jsonAsInt(json['file_size']),
       caption: json['caption']?.toString(),
       url: json['url']?.toString(),
       createdAt: json['created_at'] != null

@@ -575,27 +575,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                                 size: 18, color: AppColors.textMuted),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _AddressLine(
-                                    address: _address,
-                                    resolving: _resolvingAddress,
-                                    unavailable: _geocoderUnavailable,
-                                    center: _center,
-                                  ),
-                                  if (_address != null)
-                                    Text(
-                                      '${_center.latitude.toStringAsFixed(5)}, '
-                                      '${_center.longitude.toStringAsFixed(5)}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.textMuted
-                                            .withValues(alpha: 0.9),
-                                      ),
-                                    ),
-                                ],
+                              child: _AddressLine(
+                                address: _address,
+                                resolving: _resolvingAddress,
+                                unavailable: _geocoderUnavailable,
                               ),
                             ),
                             IconButton(
@@ -619,26 +602,22 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }
 }
 
-/// The primary caption line: the resolved address, a spinner while it is
-/// being looked up, or coordinates when the device has no geocoder.
+/// The primary caption line: the resolved street address, a spinner while it is
+/// being looked up, or a hint when the device has no geocoder. Coordinates are
+/// never rendered — they are carried on the pin and submitted silently.
 class _AddressLine extends StatelessWidget {
   const _AddressLine({
     required this.address,
     required this.resolving,
     required this.unavailable,
-    required this.center,
   });
 
   final String? address;
   final bool resolving;
   final bool unavailable;
-  final LatLng center;
 
   @override
   Widget build(BuildContext context) {
-    final coords =
-        '${center.latitude.toStringAsFixed(5)}, ${center.longitude.toStringAsFixed(5)}';
-
     final resolved = address;
     if (resolved != null) {
       return Text(
@@ -656,7 +635,7 @@ class _AddressLine extends StatelessWidget {
 
     if (unavailable) {
       return Text(
-        coords,
+        'No street name available here — you can type the location instead.',
         style: TextStyle(
           fontSize: 12,
           color: AppColors.textBody.withValues(alpha: 0.9),

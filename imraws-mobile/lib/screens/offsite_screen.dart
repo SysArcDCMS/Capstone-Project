@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/error_card.dart';
 import '../providers/auth_provider.dart';
 import '../providers/incident_provider.dart';
 import '../providers/assignment_provider.dart';
@@ -389,7 +390,17 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                             ),
                           ),
 
-                          if (activeAssignments.isEmpty)
+                          if (provider.error != null && assignments.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: ErrorCard(
+                                message: provider.error!,
+                                onRetry: () => context
+                                    .read<AssignmentProvider>()
+                                    .fetchData(),
+                              ),
+                            )
+                          else if (activeAssignments.isEmpty)
                             const _SectionCard(
                               child: Center(child: Text('No active complaints.')),
                             ),

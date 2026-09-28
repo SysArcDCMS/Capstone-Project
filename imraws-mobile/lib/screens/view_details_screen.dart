@@ -16,7 +16,10 @@ import '../services/api_config.dart';
 import '../services/api_service.dart';
 
 class ViewDetailsScreen extends StatefulWidget {
-  const ViewDetailsScreen({super.key});
+  const ViewDetailsScreen({super.key, this.service});
+
+  /// Overridable so tests can drive the detail fetch without a live API.
+  final IncidentService? service;
 
   @override
   State<ViewDetailsScreen> createState() => _ViewDetailsScreenState();
@@ -24,7 +27,9 @@ class ViewDetailsScreen extends StatefulWidget {
 
 class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
   final _notesController = TextEditingController();
-  final _incidentService = IncidentService();
+
+  late final IncidentService _incidentService =
+      widget.service ?? IncidentService();
 
   /// Seeded from the route argument so the screen paints immediately, then
   /// replaced by the by-id payload, which is the only response that carries
@@ -36,9 +41,16 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
   bool _uploading = false;
   bool _saving = false;
 
+  /// Set once the route arguments have been read, so the fetch runs exactly once
+  /// even though `didChangeDependencies` fires again on every provider change.
+  bool _seededFromRoute = false;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_seededFromRoute) return;
+    _seededFromRoute = true;
+
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Incident) {
       _incident = args;

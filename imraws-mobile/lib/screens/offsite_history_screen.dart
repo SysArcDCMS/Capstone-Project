@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
+import '../widgets/error_card.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -91,28 +92,39 @@ class _OffsiteHistoryScreenState extends State<OffsiteHistoryScreen> {
                     ? const Center(child: CircularProgressIndicator())
                     : history.isEmpty
                         ? ListView(
-                            children: const [
-                              Padding(
-                                padding: EdgeInsets.all(40),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.history,
-                                      size: 56,
-                                      color: AppColors.textMuted,
+                            padding:
+                                const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                            children: provider.error != null
+                                ? [
+                                    ErrorCard(
+                                      message: provider.error!,
+                                      onRetry: () => context
+                                          .read<AssignmentProvider>()
+                                          .fetchData(),
                                     ),
-                                    SizedBox(height: 12),
-                                    Text(
-                                      'No resolved or rejected complaints.',
-                                      style: TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 14,
+                                  ]
+                                : const [
+                                    Padding(
+                                      padding: EdgeInsets.all(40),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.history,
+                                            size: 56,
+                                            color: AppColors.textMuted,
+                                          ),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'No resolved or rejected complaints.',
+                                            style: TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ],
                           )
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),

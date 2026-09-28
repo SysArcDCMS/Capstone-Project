@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/error_card.dart';
 import '../providers/auth_provider.dart';
 import '../providers/incident_provider.dart';
 
@@ -153,7 +154,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
 
-                          if (latestIncident == null &&
+                          if (incidentProvider.error != null &&
+                              !incidentProvider.isLoading)
+                            ErrorCard(
+                              message: incidentProvider.error!,
+                              onRetry: () => context
+                                  .read<IncidentProvider>()
+                                  .fetchMyIncidents(),
+                            )
+                          else if (latestIncident == null &&
                               !incidentProvider.isLoading)
                             const _Card(
                                 child: Center(
