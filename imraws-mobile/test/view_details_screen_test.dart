@@ -89,6 +89,11 @@ void main() {
   );
 
   Widget pumpDetails(WidgetTester tester, Object? argument, User user) {
+    // The screen refetches the incident by id after it mounts, so the fake
+    // service must answer with the same incident the route was handed —
+    // otherwise the refetch silently overwrites the data under test.
+    final fetched = argument is Incident ? argument : seed;
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(
@@ -101,21 +106,21 @@ void main() {
           create: (_) => AssignmentProvider(),
         ),
       ],
-      child: MaterialApp(
-        onGenerateRoute: (settings) => MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) =>
-              ViewDetailsScreen(service: _FakeIncidentService(seed)),
-        ),
-        initialRoute: '/viewdetails',
-        onGenerateInitialRoutes: (initial) => [
-          MaterialPageRoute<void>(
-            settings: RouteSettings(name: initial, arguments: argument),
+        child: MaterialApp(
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
             builder: (_) =>
-                ViewDetailsScreen(service: _FakeIncidentService(seed)),
+                ViewDetailsScreen(service: _FakeIncidentService(fetched)),
           ),
-        ],
-      ),
+          initialRoute: '/viewdetails',
+          onGenerateInitialRoutes: (initial) => [
+            MaterialPageRoute<void>(
+              settings: RouteSettings(name: initial, arguments: argument),
+              builder: (_) => ViewDetailsScreen(
+                  service: _FakeIncidentService(fetched)),
+            ),
+          ],
+        ),
     );
   }
 
@@ -184,6 +189,63 @@ void main() {
 
       expect(find.textContaining('14.57'), findsNothing);
       expect(find.textContaining('121.03'), findsNothing);
+    });
+  });
+
+  group('ViewDetailsScreen image attachments', () {
+    Incident seedWithAttachments() => Incident.fromJson({
+          'id': 42,
+          'customer_id': 7,
+          'description': 'Water meter is leaking.',
+          'location': 'Zone 4, Kamuning',
+          'status': 'in_progress',
+          'attachments': [
+            {
+              'id': 5,
+              'incident_id': 42,
+              'file_path': 'storage/attachments/leak.png',
+              'original_name': 'leak.png',
+              'mime_type': 'image/png',
+              'url': '/storage/attachments/leak.png',
+            },
+          ],
+        });
+
+    testWidgets('omits the attachment section entirely when none is attached',
+        (tester) async {
+      await tester.pumpWidget(pumpDetails(tester, seed, customer));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Image Attachment'), findsNothing);
+      expect(find.text('No image attached'), findsNothing);
+      expect(find.byIcon(Icons.image_not_supported_outlined), findsNothing);
+    });
+
+    testWidgets('omits the attachment section for staff too when none is attached',
+        (tester) async {
+      // Staff still need a way to add the first photo — that is the separate
+      // "Attach Photo Proof" button, which must survive the empty state.
+      await tester.pumpWidget(pumpDetails(tester, seed, staff));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Image Attachment'), findsNothing);
+      expect(find.text('No image attached'), findsNothing);
+      expect(find.text('Attach Photo Proof'), findsOneWidget);
+    });
+
+    testWidgets('shows the section and a thumbnail when an image is attached',
+        (tester) async {
+      final withPhoto = seedWithAttachments();
+
+      await tester.pumpWidget(pumpDetails(tester, withPhoto, customer));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Image Attachment'), findsOneWidget);
+      expect(find.text('No image attached'), findsNothing);
+      // The thumb is an Image.network, and flutter_test blocks HTTP with a
+      // 400, so the widget's own errorBuilder is what renders here — its
+      // presence proves the gallery laid out a thumb for the attachment.
+      expect(find.text('Unavailable'), findsOneWidget);
     });
   });
 }

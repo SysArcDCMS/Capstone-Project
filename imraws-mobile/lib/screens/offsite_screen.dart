@@ -235,39 +235,88 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
     }
   }
 
-  // Accept/Reject/Correct are only shown while the complaint is still
-  // ASSIGNED (not yet accepted) — in-progress ones only get Update Status.
+  /// The action set for a complaint card.
+  ///
+  /// Triage and progress are mutually exclusive: a team leader triages an
+  /// untouched complaint (Accept / Reject / Correct), and can only start
+  /// changing the status once they have accepted it. `pending`, `assigned`,
+  /// `correct` and `override` are all still un-accepted, so a leader who
+  /// corrected the classification can still accept it from the card.
   List<Widget> _actionButtons(Assignment a) {
-    final canFullAct =
-        a.actionStatus == 'assigned' || a.actionStatus == 'pending';
+    const accepted = {'accept', 'in_progress'};
+
+    if (accepted.contains(a.actionStatus)) {
+      return [
+        _ActionButton(
+          label: 'UPDATE STATUS',
+          color: AppColors.navy,
+          onTap: () => _updateStatus(a),
+        ),
+      ];
+    }
+
     return [
-      if (canFullAct) ...[
-        _ActionButton(
-          label: 'Accept',
-          color: AppColors.green,
-          icon: Icons.check,
-          onTap: () => _accept(a),
-        ),
-        _ActionButton(
-          label: 'Reject',
-          color: AppColors.red,
-          icon: Icons.close,
-          onTap: () => _reject(a),
-        ),
-        _ActionButton(
-          label: 'Correct',
-          color: AppColors.orange,
-          icon: Icons.edit,
-          onTap: () => _correct(a),
-        ),
-      ],
       _ActionButton(
-        label: 'Update Status',
-        color: AppColors.navy,
-        icon: Icons.update,
-        onTap: () => _updateStatus(a),
+        label: 'Accept',
+        color: AppColors.green,
+        onTap: () => _accept(a),
+        expand: true,
+      ),
+      _ActionButton(
+        label: 'Reject',
+        color: AppColors.red,
+        onTap: () => _reject(a),
+        expand: true,
+      ),
+      _ActionButton(
+        label: 'Correct',
+        color: AppColors.orange,
+        onTap: () => _correct(a),
+        expand: true,
       ),
     ];
+  }
+
+  /// Lays the badge and its actions out on one line. The actions take the
+  /// space the badge leaves behind, so three triage buttons share a narrow
+  /// phone instead of overflowing it.
+  Widget _statusBlock(Assignment a) {
+    final badge = _StatusBadge(status: a.incident?.status ?? 'OPEN');
+    final actions = _actionButtons(a);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        badge,
+        const SizedBox(width: 8),
+        if (actions.length == 1)
+          // A lone button keeps its natural width, right-aligned.
+          Expanded(
+            child: Align(alignment: Alignment.centerRight, child: actions.first),
+          )
+        else
+          Expanded(
+            child: Row(
+              children: [
+                for (var i = 0; i < actions.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 6),
+                  Expanded(child: actions[i]),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The date the customer filed the complaint, not the date the assignment
+  /// row was created — the card has always shown the latter, which reads as
+  /// "filed" on a complaint list. Falls back to `assigned_at` for the rare
+  /// row whose incident carries no submitted timestamp.
+  String _filedDate(Assignment a) {
+    final filed = a.incident?.submittedAt ?? a.assignedAt;
+    if (filed == null) return '';
+    return DateFormat('MMM dd, yyyy · hh:mm a').format(filed);
   }
 
   void _toast(String message, {bool success = true}) {
@@ -411,19 +460,7 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Wrap(
-                                        spacing: 8,
-                                        children: [
-                                          _StatusBadge(
-                                              status: a.incident?.status ?? 'OPEN'),
-                                          if (a.incident?.severity == 'High')
-                                            const _Badge(
-                                              label: '▲ High Priority',
-                                              color: AppColors.red,
-                                              bgColor: Color(0xFFFEE2E2),
-                                            ),
-                                        ],
-                                      ),
+                                      _statusBlock(a),
                                       const SizedBox(height: 10),
 
                                       Text(
@@ -436,10 +473,7 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                                       ),
                                       const SizedBox(height: 3),
                                       Text(
-                                        a.assignedAt != null
-                                            ? DateFormat('MMM dd, yyyy · hh:mm a')
-                                                .format(a.assignedAt!)
-                                            : '',
+                                        _filedDate(a),
                                         style: const TextStyle(
                                           fontSize: 10.5,
                                           color: AppColors.textMuted,
@@ -463,30 +497,25 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
                                         ),
                                       const SizedBox(height: 16),
 
-                                      // Actions — accept/reject/correct only while assigned
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: _actionButtons(a),
-                                      ),
-                                      const SizedBox(height: 12),
-
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.pushNamed(
-                                            context, '/viewdetails',
-                                            arguments: a),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.navy,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 22, vertical: 10),
-                                          shape: const StadiumBorder(),
-                                          elevation: 0,
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: () => Navigator.pushNamed(
+                                              context, '/viewdetails',
+                                              arguments: a),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.navy,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 22, vertical: 10),
+                                            shape: const StadiumBorder(),
+                                            elevation: 0,
+                                          ),
+                                          child: const Text('View Details',
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700)),
                                         ),
-                                        child: const Text('View Details',
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700)),
                                       ),
                                     ],
                                   ),
@@ -569,43 +598,50 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
   }
 }
 
+/// A pill action on a complaint card.
+///
+/// Compact by design: the triage set shares one line with the status badge, so
+/// the label is centred and wrapped in a [FittedBox] that scales it down
+/// rather than letting it overflow or ellipsise on a narrow phone. There is no
+/// icon — the three icons cost roughly 57dp in total, which is the difference
+/// between fitting the row and not.
 class _ActionButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-
   const _ActionButton({
     required this.label,
     required this.color,
-    required this.icon,
     required this.onTap,
+    this.expand = false,
   });
+
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  /// Take an equal share of the row rather than hugging the label.
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        width: expand ? double.infinity : null,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: Colors.white),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-              ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -627,26 +663,6 @@ class _SectionCard extends StatelessWidget {
         boxShadow: [BoxShadow(color: AppColors.navy.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 2))],
       ),
       child: child,
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color bgColor;
-  const _Badge({required this.label, required this.color, required this.bgColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
     );
   }
 }

@@ -409,18 +409,24 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
                               ),
                               const SizedBox(height: 18),
 
-                              // Image attachment(s)
-                              const Text(
-                                'Image Attachment',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textBody),
-                              ),
-                              const SizedBox(height: 8),
-                              _AttachmentGallery(
-                                  attachments: incident.attachments),
-                              const SizedBox(height: 18),
+                              // Photo proof. Hidden entirely when the customer
+                              // attached nothing — a heading over an empty
+                              // placeholder just advertises a gap that isn't
+                              // one. Staff can still add the first photo with
+                              // "Attach Photo Proof" further down.
+                              if (incident.attachments.isNotEmpty) ...[
+                                const Text(
+                                  'Image Attachment',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textBody),
+                                ),
+                                const SizedBox(height: 8),
+                                _AttachmentGallery(
+                                    attachments: incident.attachments),
+                                const SizedBox(height: 18),
+                              ],
 
                               if (_resolutionNote(incident) != null) ...[
                                 const Text(
@@ -659,29 +665,9 @@ class _AttachmentGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (attachments.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-        decoration: BoxDecoration(
-          color: AppColors.fieldBg,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.image_not_supported_outlined,
-                size: 16, color: AppColors.textMuted),
-            SizedBox(width: 8),
-            Text(
-              'No image attached',
-              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-            ),
-          ],
-        ),
-      );
-    }
-
+    // Only ever built with a non-empty list — the caller gates on
+    // `attachments.isNotEmpty` so the section disappears when there is
+    // nothing to show.
     return SizedBox(
       height: 96,
       child: ListView.separated(
