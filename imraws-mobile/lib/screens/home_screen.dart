@@ -89,7 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(height: 12),
 
                                   // Badge
-                                  _StatusBadge(status: latestIncident.status ?? 'OPEN'),
+                                  _StatusBadge(
+                                      status: latestIncident.status ?? 'OPEN'),
                                   const SizedBox(height: 10),
 
                                   Text(
@@ -103,9 +104,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(height: 3),
                                   Text(
                                     latestIncident.submittedAt != null
-                                        ? DateFormat('MMM dd, yyyy · hh:mm a').format(latestIncident.submittedAt!)
+                                        ? DateFormat('MMM dd, yyyy · hh:mm a')
+                                            .format(latestIncident.submittedAt!)
                                         : 'Unknown date',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted),
                                   ),
                                   const SizedBox(height: 12),
 
@@ -116,16 +120,45 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      latestIncident.description ?? 'No description provided.',
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563), height: 1.55),
+                                      latestIncident.description ??
+                                          'No description provided.',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF4B5563),
+                                          height: 1.55),
                                     ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pushNamed(
+                                      context,
+                                      '/viewdetails',
+                                      arguments: latestIncident,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.navy,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 22, vertical: 10),
+                                      shape: const StadiumBorder(),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text('View Details',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700)),
                                   ),
                                 ],
                               ),
                             ),
-                          
-                          if (latestIncident == null && !incidentProvider.isLoading)
-                            const _Card(child: Center(child: Text('No complaints submitted yet.'))),
+
+                          if (latestIncident == null &&
+                              !incidentProvider.isLoading)
+                            const _Card(
+                                child: Center(
+                                    child:
+                                        Text('No complaints submitted yet.'))),
 
                           const SizedBox(height: 14),
 
@@ -135,59 +168,87 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const _SectionLabel('History'),
+                                  _SectionLabel(
+                                      'Complaint History (${incidents.length - 1})'),
                                   const SizedBox(height: 14),
-                                  ...incidents.skip(1).take(5).toList().asMap().entries.map((e) {
+                                  ...incidents
+                                      .skip(1)
+                                      .toList()
+                                      .asMap()
+                                      .entries
+                                      .map((e) {
                                     final i = e.key;
                                     final item = e.value;
                                     return Column(
                                       children: [
                                         Row(
-                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
                                           children: [
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     '#MNL-${item.id}',
                                                     style: const TextStyle(
                                                       fontSize: 13,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       color: AppColors.navy,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 3),
                                                   Text(
                                                     item.submittedAt != null
-                                                        ? DateFormat('MMM dd, yyyy · hh:mm a').format(item.submittedAt!)
+                                                        ? DateFormat(
+                                                                'MMM dd, yyyy · hh:mm a')
+                                                            .format(item
+                                                                .submittedAt!)
                                                         : '',
                                                     style: const TextStyle(
                                                       fontSize: 10.5,
-                                                      color: AppColors.textMuted,
+                                                      color:
+                                                          AppColors.textMuted,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 7),
-                                                  _StatusBadge(status: item.status ?? 'OPEN', small: true),
+                                                  _StatusBadge(
+                                                      status:
+                                                          item.status ?? 'OPEN',
+                                                      small: true),
                                                 ],
                                               ),
                                             ),
                                             ElevatedButton(
-                                              onPressed: () => Navigator.pushNamed(context, '/viewdetails', arguments: item),
+                                              onPressed: () =>
+                                                  Navigator.pushNamed(
+                                                      context, '/viewdetails',
+                                                      arguments: item),
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: AppColors.navy,
                                                 foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 22,
+                                                        vertical: 10),
                                                 shape: const StadiumBorder(),
                                                 elevation: 0,
                                               ),
-                                              child: const Text('View Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                              child: const Text('View Details',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700)),
                                             ),
                                           ],
                                         ),
                                         if (i < incidents.length - 2) ...[
                                           const SizedBox(height: 14),
-                                          const Divider(color: AppColors.divider, height: 1),
+                                          const Divider(
+                                              color: AppColors.divider,
+                                              height: 1),
                                           const SizedBox(height: 14),
                                         ],
                                       ],
@@ -198,7 +259,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
 
                           const SizedBox(height: 14),
-
                         ],
                       ),
               ),
@@ -207,7 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Bottom Nav ───────────────────────────────────────
             MayniladBottomNav(
               active: NavTab.home,
-              onHome: () => context.read<AuthProvider>().navigateToHome(context),
+              onHome: () =>
+                  context.read<AuthProvider>().navigateToHome(context),
               onReport: () => Navigator.pushNamed(context, '/complaint'),
               onSettings: () => Navigator.pushNamed(context, '/settings'),
               isCustomer: context.watch<AuthProvider>().isCustomer,
@@ -228,7 +289,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color = AppColors.orange;
     Color bgColor = const Color(0xFFFFF4E5);
-    
+
     final s = status.toUpperCase();
     if (s == 'RESOLVED' || s == 'COMPLETE') {
       color = AppColors.green;
@@ -245,7 +306,8 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: small ? 10 : 12, vertical: small ? 3 : 5),
+      padding: EdgeInsets.symmetric(
+          horizontal: small ? 10 : 12, vertical: small ? 3 : 5),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(999),

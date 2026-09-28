@@ -6,6 +6,7 @@ dart run imraws-mobile/tool/run.dart
 
  - - - - - - - FOR RUNNING THE WEBSITE-BACKEND - - - - - - -
 
+php artisan storage:link   (once, so complaint photo attachments are served)
 cd ..\imraws-backend-website; php artisan serve --host=0.0.0.0 --port=8000
 
  - - - - - - - FOR RUNNING THE AI-NLP  - - - - - - -

@@ -62,7 +62,7 @@ class IncidentController extends Controller
         $user = $request->user();
 
         $query = VisibilityScope::incidents(
-            Incident::query()->with(['customer:id,full_name,email', 'assignments.teamLeader:id,full_name'])
+            Incident::query()->with(['customer:id,full_name,email,contact_no', 'assignments.teamLeader:id,full_name'])
                 ->orderByDesc('submitted_at'),
             $user,
         );
@@ -225,7 +225,7 @@ class IncidentController extends Controller
         $user = $request->user();
 
         $incident = Incident::with([
-            'customer:id,full_name,email',
+            'customer:id,full_name,email,contact_no',
             'assignments.teamLeader:id,full_name',
             'assignments.engineer:id,full_name',
             'feedback',

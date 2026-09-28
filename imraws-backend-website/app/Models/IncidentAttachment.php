@@ -33,6 +33,15 @@ class IncidentAttachment extends Model
         'caption',
     ];
 
+    /**
+     * Without this the `url` accessor below is invisible to `toArray()`: Eloquent
+     * only serialises real columns plus appended attributes, so every client
+     * received `file_path` and nothing to fetch the image with.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['url'];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

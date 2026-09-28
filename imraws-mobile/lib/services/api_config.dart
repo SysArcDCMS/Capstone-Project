@@ -12,6 +12,24 @@ class ApiConfig {
     defaultValue: 'http://127.0.0.1:8000/api',
   );
 
+  /// Server origin without the `/api` suffix, e.g. `http://192.168.1.20:8000`.
+  ///
+  /// Attachment `url` values come back root-relative (`/storage/...`) because
+  /// they are produced by `Storage::url()`, so they must be joined to the
+  /// origin rather than to [baseUrl] — that would produce `/api/storage/...`,
+  /// which the web server never serves.
+  static String get origin {
+    final uri = Uri.parse(baseUrl);
+    return '${uri.scheme}://${uri.authority}';
+  }
+
+  /// Absolute URL for a root-relative path returned by the API.
+  static String absoluteUrl(String path) {
+    if (path.isEmpty) return path;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return '$origin${path.startsWith('/') ? '' : '/'}$path';
+  }
+
   // ── Auth ────────────────────────────────────────────────────────────
   static const String login = '/auth/login';
   static const String register = '/auth/register';
