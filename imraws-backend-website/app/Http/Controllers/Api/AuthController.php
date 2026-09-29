@@ -166,6 +166,16 @@ class AuthController extends Controller
             'address'    => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
 
+        // A text field the user emptied arrives as '', but both columns are
+        // nullable, so store null instead. Otherwise the row ends up holding
+        // an empty string that reads back as "set but blank", and anything
+        // testing for null misses it.
+        foreach (['contact_no', 'address'] as $optional) {
+            if (array_key_exists($optional, $data) && trim((string) $data[$optional]) === '') {
+                $data[$optional] = null;
+            }
+        }
+
         $old = $user->only(['full_name', 'contact_no', 'address']);
         $user->fill($data)->save();
 
@@ -428,9 +438,21 @@ class AuthController extends Controller
                 'id'              => $user->id,
                 'full_name'       => $user->full_name,
                 'email'           => $user->email,
+                // Must match the shape returned by `me()` and by
+                // updateProfile(). These were omitted here, so after a login
+                // the app's cached User had contactNo/address == null. The
+                // account screen seeds its text fields from that object, and
+                // saving any unrelated field then submitted the blanks back
+                // and silently erased the real values. The response shape has
+                // to be identical across all three, or the client cannot tell
+                // "empty" from "never loaded".
+                'contact_no'      => $user->contact_no,
+                'address'         => $user->address,
                 'role'            => $user->role,
+                'is_active'       => $user->is_active,
                 'is_team_leader'  => $user->is_team_leader,
                 'department_team' => $user->department_team,
+                'created_at'      => $user->created_at,
             ],
         ], $status);
     }

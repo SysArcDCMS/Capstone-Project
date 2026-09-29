@@ -60,6 +60,31 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Incident photo proof. Private by design: complaint photos can show
+         * faces, homes and addresses, so they must not be readable by anyone
+         * who can guess an incident id.
+         *
+         * `serve` registers a route that streams the file, and because this
+         * disk declares no `visibility` key, ServeFile treats it as private
+         * and rejects any request without a valid signature. Combined with
+         * IncidentAttachment::getUrlAttribute() returning a temporaryUrl(),
+         * that means the only way to fetch a photo is with a time-limited
+         * signed URL, and the host is derived from the incoming request so it
+         * works from a phone on the LAN instead of a hardcoded APP_URL.
+         *
+         * Because the file is served by the framework, no `storage:link`
+         * symlink is required — which is fortunate, since the symlink cannot
+         * be created on Windows while public/storage exists as a real folder.
+         */
+        'attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'throw' => true,
+            'report' => true,
+        ],
+
     ],
 
     /*

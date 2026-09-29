@@ -16,10 +16,12 @@ import '../services/api_config.dart';
 import '../services/api_service.dart';
 
 class ViewDetailsScreen extends StatefulWidget {
-  const ViewDetailsScreen({super.key, this.service});
-
-  /// Overridable so tests can drive the detail fetch without a live API.
+  /// Injection point for tests. Production leaves it null and gets a real
+  /// [IncidentService]; the widget tests pass a fake so the screen can be
+  /// driven without a backend.
   final IncidentService? service;
+
+  const ViewDetailsScreen({super.key, this.service});
 
   @override
   State<ViewDetailsScreen> createState() => _ViewDetailsScreenState();
@@ -41,10 +43,15 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
   bool _uploading = false;
   bool _saving = false;
 
-  /// Set once the route arguments have been read, so the fetch runs exactly once
-  /// even though `didChangeDependencies` fires again on every provider change.
   bool _seededFromRoute = false;
 
+  /// Read the route argument here rather than in initState.
+  ///
+  /// ModalRoute.of() resolves an inherited widget, and reading one during
+  /// initState throws "dependOnInheritedWidgetOfExactType<_ModalScopeStatus>()
+  /// ... was called before initState() completed". didChangeDependencies runs
+  /// once the route is mounted, and the guard keeps this to a single pass so a
+  /// later rebuild does not refetch.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -409,11 +416,14 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
                               ),
                               const SizedBox(height: 18),
 
-                              // Photo proof. Hidden entirely when the customer
-                              // attached nothing — a heading over an empty
-                              // placeholder just advertises a gap that isn't
-                              // one. Staff can still add the first photo with
-                              // "Attach Photo Proof" further down.
+                              // Image attachment(s).
+                              //
+                              // The whole section is hidden when nothing is
+                              // attached. A heading above an empty box reads
+                              // as a broken screen, and there is no longer an
+                              // in-section empty state to justify showing one.
+                              // Staff still have the separate "Attach Photo
+                              // Proof" button for adding the first photo.
                               if (incident.attachments.isNotEmpty) ...[
                                 const Text(
                                   'Image Attachment',

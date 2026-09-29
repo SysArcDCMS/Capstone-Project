@@ -27,6 +27,16 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
+  /// Fields the user has actually edited this visit.
+  ///
+  /// Save submits only these. Resending every field looked harmless, but the
+  /// form is seeded from the cached user, so an untouched box may hold a value
+  /// the client never loaded (or a stale one). Submitting that back overwrote
+  /// the real value on the server — the profile's contact number and address
+  /// could be erased by saving just a corrected name. Tracking edits keeps
+  /// "clear this field" working, because clearing it *is* an edit.
+  final Set<String> _dirty = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +45,9 @@ class _AccountScreenState extends State<AccountScreen> {
     _emailController = TextEditingController(text: user?.email);
     _contactController = TextEditingController(text: user?.contactNo);
     _addressController = TextEditingController(text: user?.address);
+    _nameController.addListener(() => _dirty.add('name'));
+    _contactController.addListener(() => _dirty.add('contact'));
+    _addressController.addListener(() => _dirty.add('address'));
   }
 
   @override
@@ -51,21 +64,29 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _handleSave() async {
+    if (_dirty.isEmpty) {
+      _toast('No changes to save.', success: false);
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     final result = await auth.updateProfile(
-      fullName: _nameController.text.trim(),
-      contactNo: _contactController.text.trim(),
-      address: _addressController.text.trim(),
+      fullName: _dirty.contains('name') ? _nameController.text.trim() : null,
+      contactNo: _dirty.contains('contact') ? _contactController.text.trim() : null,
+      address: _dirty.contains('address') ? _addressController.text.trim() : null,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result['success'] == true ? 'Changes saved successfully.' : result['message'] as String,
-        ),
-        backgroundColor:
-            result['success'] == true ? AppColors.navy : AppColors.red,
-      ),
+
+    if (result['success'] == true) {
+      // The provider now holds the server's copy, so the boxes are in sync
+      // again and the next save should only carry fresh edits.
+      _dirty.clear();
+    }
+    _toast(
+      result['success'] == true
+          ? 'Changes saved successfully.'
+          : result['message'] as String,
+      success: result['success'] == true,
     );
   }
 

@@ -248,7 +248,7 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
     if (accepted.contains(a.actionStatus)) {
       return [
         _ActionButton(
-          label: 'UPDATE STATUS',
+          label: 'CHANGE STATUS',
           color: AppColors.navy,
           onTap: () => _updateStatus(a),
         ),
@@ -357,26 +357,38 @@ class _OffsiteScreenState extends State<OffsiteScreen> {
               child: Row(
                 children: [
                   const MayniladLogo(size: 44),
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${user?.role.toUpperCase() ?? 'STAFF'},',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.55),
-                          fontSize: 11,
+                  // Expanded, not Spacer: a Spacer only absorbs slack, so a long
+                  // name still overflows the header. Expanded hands the greeting
+                  // whatever space is left and the ellipsis absorbs the rest, so
+                  // the logo and bell keep their place at any width.
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${user?.role.toUpperCase() ?? 'STAFF'},',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.55),
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Hello, ${user?.fullName ?? 'User'}!',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                        Text(
+                          'Hello, ${user?.fullName ?? 'User'}!',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const NotificationBell(),

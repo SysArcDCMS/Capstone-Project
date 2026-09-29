@@ -12,13 +12,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Photo proof uploaded by offsite staff upon completing a repair
  * (DFD 5.6 — Attach Photo Proof, Optional).
  *
- * The file lives on the `public` disk at
- * storage/app/public/attachments/{incident_id}/{filename}.
+ * The file lives on the private `attachments` disk at
+ * storage/app/private/attachments/{incident_id}/{filename} and is only
+ * reachable through a time-limited signed URL.
  */
 class IncidentAttachment extends Model
 {
     /** @use HasFactory<\Database\Factories\IncidentAttachmentFactory> */
     use HasFactory;
+
+    /**
+     * Filesystem disk holding the photo. Configured in filesystems.php with
+     * `serve => true` so signed URLs can be generated and served.
+     */
+    public const DISK = 'attachments';
+
+    /**
+     * How long a generated photo URL stays valid. Short enough that a URL
+     * pasted into a chat or left in device logs goes stale, long enough for
+     * the gallery and the full-screen viewer in one sitting.
+     */
+    public const URL_TTL_MINUTES = 15;
 
     protected $table = 'tbl_incident_attachments';
 
@@ -60,9 +74,29 @@ class IncidentAttachment extends Model
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
-    /** Public URL for download. */
+    /**
+     * Time-limited signed URL for the photo.
+     *
+     * Previously this returned `Storage::disk('public')->url()`, which built
+     * `{APP_URL}/storage/{path}`. That was wrong twice over:
+     *
+     *   1. It was a plain public path, so anyone who could guess an incident
+     *      id could fetch the photo with no JWT at all.
+     *   2. APP_URL is `http://localhost:8000` in development, and a signed-in
+     *      phone resolves `localhost` to itself — so the image never loaded
+     *      on the device that uploaded it, only "Unavailable".
+     *
+     * `temporaryUrl()` fixes both: the signature gates access, and the host
+     * is taken from the incoming request, so a phone on the LAN receives an
+     * image URL pointing at the server that actually answered the API call.
+     *
+     * @throws \RuntimeException if the disk is not configured with `serve`
+     */
     public function getUrlAttribute(): string
     {
-        return \Storage::disk('public')->url($this->file_path);
+        return \Storage::disk(self::DISK)->temporaryUrl(
+            $this->file_path,
+            now()->addMinutes(self::URL_TTL_MINUTES),
+        );
     }
 }

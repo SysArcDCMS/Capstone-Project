@@ -17,16 +17,32 @@ use Illuminate\Support\Str;
  * Photo proof controller — capstone DFD 5.6 (Attach Photo Proof – Optional).
  *
  * Offsite staff uploads an image to confirm completion of a field repair.
- * The file is stored at storage/app/public/attachments/{incident_id}/{uuid}.{ext}
+ * The file is stored at storage/app/private/attachments/{incident_id}/{uuid}.{ext}
  * and the row is persisted in tbl_incident_attachments.
  *
- * Files are served via Laravel's `public` disk, accessible at
- * /storage/attachments/{incident_id}/{file}.
+ * Photos live on the private `attachments` disk and are served through
+ * Laravel's own route, gated by a time-limited signature. They are never
+ * exposed as plain public URLs, and no `storage:link` is needed.
  */
 class AttachmentController extends Controller
 {
     /** Allowed MIME types (capstone DFD 5.6 is image-only). */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+
+    /**
+     * Extension per allowed MIME type.
+     *
+     * Derived from the server-sniffed MIME rather than
+     * getClientOriginalExtension(), so the object key always matches the
+     * bytes actually stored. A client asking for `photo.php` gets a `.jpg`
+     * key, and a mismatched extension can no longer influence how the file
+     * is served back.
+     */
+    private const MIME_EXTENSION = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
 
     /** Max upload size: 5 MB. */
     private const MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -70,8 +86,9 @@ class AttachmentController extends Controller
         }
 
         $file = $request->file('file');
+        $mime = $file->getMimeType();
 
-        if (! in_array($file->getMimeType(), self::ALLOWED_MIME, true)) {
+        if (! in_array($mime, self::ALLOWED_MIME, true)) {
             return response()->json([
                 'message' => 'Only JPEG, PNG, or WebP images are allowed.',
             ], 422);
@@ -84,11 +101,14 @@ class AttachmentController extends Controller
         }
 
         // Build path: attachments/{incident_id}/{uuid}.{ext}
-        $extension = $file->getClientOriginalExtension() ?: 'jpg';
+        $extension = self::MIME_EXTENSION[$mime];
         $filename  = Str::uuid()->toString().'.'.$extension;
         $path      = "attachments/{$incident->id}/{$filename}";
 
-        Storage::disk('public')->putFileAs(
+        // `throw` is on for this disk, so an unwritable or full disk raises
+        // instead of silently returning false — otherwise the row below would
+        // point at a photo that was never written.
+        Storage::disk(IncidentAttachment::DISK)->putFileAs(
             "attachments/{$incident->id}",
             $file,
             $filename,
@@ -99,7 +119,7 @@ class AttachmentController extends Controller
             'uploaded_by'   => $user->id,
             'file_path'     => $path,
             'original_name' => $file->getClientOriginalName(),
-            'mime_type'     => $file->getMimeType(),
+            'mime_type'     => $mime,
             'file_size'     => $file->getSize(),
             'caption'       => $request->input('caption'),
         ]);
@@ -157,7 +177,7 @@ class AttachmentController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        Storage::disk('public')->delete($attachment->file_path);
+        Storage::disk(IncidentAttachment::DISK)->delete($attachment->file_path);
         $attachment->delete();
 
         AuditLog::record(
