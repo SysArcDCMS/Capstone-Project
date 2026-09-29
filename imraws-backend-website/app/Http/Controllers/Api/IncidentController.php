@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Incident;
+use App\Models\IncidentAttachment;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\AiRoutingService;
@@ -12,7 +13,10 @@ use App\Services\NlpService;
 use App\Services\VisibilityScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -91,6 +95,10 @@ class IncidentController extends Controller
      * Customer submits a new complaint. Triggers the NLP pipeline and
      * stores the resulting {category, severity, composite_score} on
      * the incident row (capstone DFD 2.7–2.11).
+     *
+     * Accepts up to IncidentAttachment::MAX_EVIDENCE_PHOTOS images as
+     * `photos[]` (DFD 2.2, optional). This makes the request multipart, so
+     * the app sends FormData rather than a JSON body.
      */
     public function store(Request $request): JsonResponse
     {
@@ -106,6 +114,14 @@ class IncidentController extends Controller
             'latitude'    => ['nullable', 'numeric', 'between:-90,90'],
             'longitude'   => ['nullable', 'numeric', 'between:-180,180'],
             'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'photos'      => ['nullable', 'array', 'max:'.IncidentAttachment::MAX_EVIDENCE_PHOTOS],
+            'photos.*'    => [
+                'file',
+                // mimetypes (not mimes) checks the sniffed MIME, which is the
+                // same set the staff proof path accepts.
+                'mimetypes:'.implode(',', array_keys(IncidentAttachment::MIME_EXTENSIONS)),
+                'max:'.(IncidentAttachment::MAX_BYTES / 1024),
+            ],
         ]);
 
         $customerId = $user->isCustomer()
@@ -166,6 +182,9 @@ class IncidentController extends Controller
             newValue:  $incident->only(['customer_id', 'category', 'severity', 'composite_score', 'status']),
         );
 
+        // DFD 2.2 — attach the customer's own photos of the problem.
+        $evidence = $this->storeEvidencePhotos($request, $incident, $user);
+
         // DFD 3.0 — auto-route to a Team Leader.
         $assignment = null;
         try {
@@ -210,7 +229,112 @@ class IncidentController extends Controller
             'data' => $incident->load('customer:id,full_name,email'),
             'analysis' => $analysis,
             'assignment' => $assignment,
+            // Photos are attached after the complaint exists, so a failure
+            // here is reported rather than rolled back. The complaint is the
+            // valuable part; a missing picture is not worth losing it over.
+            'photos_saved' => count($evidence['saved']),
+            'photo_warnings' => $evidence['warnings'],
         ], 201);
+    }
+
+    /**
+     * Persist the customer's evidence photos (DFD 2.2).
+     *
+     * Runs after the incident row exists so a storage failure cannot lose the
+     * complaint itself. Each photo is handled independently: one bad file is
+     * collected as a warning and the rest still save.
+     *
+     * @return array{saved: list<IncidentAttachment>, warnings: list<string>}
+     */
+    private function storeEvidencePhotos(
+        Request $request,
+        Incident $incident,
+        User $actor,
+    ): array {
+        /** @var list<UploadedFile> $files */
+        $files = $request->file('photos', []);
+
+        $saved = [];
+        $warnings = [];
+
+        foreach ($files as $index => $file) {
+            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+                $warnings[] = 'Photo '.($index + 1).' was not received and was skipped.';
+
+                continue;
+            }
+
+            $mime = $file->getMimeType();
+
+            // Re-checked here even though the validation rules cover it: this
+            // is the value the stored extension is derived from, so a type
+            // that slipped past would write a file under the wrong name.
+            $extension = IncidentAttachment::MIME_EXTENSIONS[$mime] ?? null;
+
+            if ($extension === null) {
+                $warnings[] = 'Photo '.($index + 1).' is not a JPEG, PNG, or WebP image and was skipped.';
+
+                continue;
+            }
+
+            if ($file->getSize() > IncidentAttachment::MAX_BYTES) {
+                $warnings[] = 'Photo '.($index + 1).' is larger than 5 MB and was skipped.';
+
+                continue;
+            }
+
+            $filename = Str::uuid()->toString().'.'.$extension;
+            $path = IncidentAttachment::pathFor(
+                IncidentAttachment::KIND_EVIDENCE,
+                (int) $incident->id,
+                $filename,
+            );
+
+            try {
+                // `throw` is on for this disk, so an unwritable or full disk
+                // raises here instead of returning false and leaving a row
+                // pointing at a photo that was never written.
+                Storage::disk(IncidentAttachment::DISK)->putFileAs(
+                    dirname($path),
+                    $file,
+                    $filename,
+                );
+
+                $saved[] = IncidentAttachment::create([
+                    'incident_id'   => $incident->id,
+                    'uploaded_by'   => $actor->id,
+                    'file_path'     => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type'     => $mime,
+                    'file_size'     => $file->getSize(),
+                    'caption'       => 'Attached with the complaint.',
+                ]);
+            } catch (\Throwable $e) {
+                // A disk that is full, read-only, or out of space should cost
+                // the customer their photo, not their complaint.
+                AuditLog::record(
+                    userId:    $actor->id,
+                    action:    'evidence_photo_failed',
+                    tableName: 'tbl_incident_attachments',
+                    recordId:  $incident->id,
+                    newValue:  ['index' => $index, 'error' => $e->getMessage()],
+                );
+
+                $warnings[] = 'Photo '.($index + 1).' could not be saved.';
+            }
+        }
+
+        if ($saved !== []) {
+            AuditLog::record(
+                userId:    $actor->id,
+                action:    'attach_evidence',
+                tableName: 'tbl_incident_attachments',
+                recordId:  $incident->id,
+                newValue:  ['count' => count($saved)],
+            );
+        }
+
+        return ['saved' => $saved, 'warnings' => $warnings];
     }
 
     /**

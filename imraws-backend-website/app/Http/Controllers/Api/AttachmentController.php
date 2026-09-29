@@ -17,36 +17,21 @@ use Illuminate\Support\Str;
  * Photo proof controller — capstone DFD 5.6 (Attach Photo Proof – Optional).
  *
  * Offsite staff uploads an image to confirm completion of a field repair.
- * The file is stored at storage/app/private/attachments/{incident_id}/{uuid}.{ext}
- * and the row is persisted in tbl_incident_attachments.
+ * The file is stored at
+ * storage/app/private/attachments/proof/{incident_id}/{uuid}.{ext} and the row
+ * is persisted in tbl_incident_attachments.
  *
  * Photos live on the private `attachments` disk and are served through
  * Laravel's own route, gated by a time-limited signature. They are never
  * exposed as plain public URLs, and no `storage:link` is needed.
+ *
+ * The allowed types, the size cap and the stored extension are shared with the
+ * customer's evidence upload in IncidentController::store() via
+ * IncidentAttachment, so the two paths cannot drift apart on what a valid
+ * complaint photo is.
  */
 class AttachmentController extends Controller
 {
-    /** Allowed MIME types (capstone DFD 5.6 is image-only). */
-    private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
-
-    /**
-     * Extension per allowed MIME type.
-     *
-     * Derived from the server-sniffed MIME rather than
-     * getClientOriginalExtension(), so the object key always matches the
-     * bytes actually stored. A client asking for `photo.php` gets a `.jpg`
-     * key, and a mismatched extension can no longer influence how the file
-     * is served back.
-     */
-    private const MIME_EXTENSION = [
-        'image/jpeg' => 'jpg',
-        'image/png'  => 'png',
-        'image/webp' => 'webp',
-    ];
-
-    /** Max upload size: 5 MB. */
-    private const MAX_SIZE_BYTES = 5 * 1024 * 1024;
-
     /**
      * POST /api/incidents/{id}/attachments
      *
@@ -55,7 +40,7 @@ class AttachmentController extends Controller
     public function store(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'file'    => ['required', 'file', 'max:5120'], // 5 MB in KB
+            'file'    => ['required', 'file', 'max:'.(IncidentAttachment::MAX_BYTES / 1024)],
             'caption' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -88,28 +73,28 @@ class AttachmentController extends Controller
         $file = $request->file('file');
         $mime = $file->getMimeType();
 
-        if (! in_array($mime, self::ALLOWED_MIME, true)) {
+        if (! isset(IncidentAttachment::MIME_EXTENSIONS[$mime])) {
             return response()->json([
                 'message' => 'Only JPEG, PNG, or WebP images are allowed.',
             ], 422);
         }
 
-        if ($file->getSize() > self::MAX_SIZE_BYTES) {
+        if ($file->getSize() > IncidentAttachment::MAX_BYTES) {
             return response()->json([
                 'message' => 'File too large (max 5 MB).',
             ], 413);
         }
 
-        // Build path: attachments/{incident_id}/{uuid}.{ext}
-        $extension = self::MIME_EXTENSION[$mime];
+        // Build path: attachments/proof/{incident_id}/{uuid}.{ext}
+        $extension = IncidentAttachment::MIME_EXTENSIONS[$mime];
         $filename  = Str::uuid()->toString().'.'.$extension;
-        $path      = "attachments/{$incident->id}/{$filename}";
+        $path      = IncidentAttachment::pathFor(IncidentAttachment::KIND_PROOF, $incident->id, $filename);
 
         // `throw` is on for this disk, so an unwritable or full disk raises
         // instead of silently returning false — otherwise the row below would
         // point at a photo that was never written.
         Storage::disk(IncidentAttachment::DISK)->putFileAs(
-            "attachments/{$incident->id}",
+            dirname($path),
             $file,
             $filename,
         );

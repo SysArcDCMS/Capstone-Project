@@ -91,11 +91,25 @@ class AttachmentStorageTest extends TestCase
         $attachment = $this->uploadProof($staff, $incident);
 
         Storage::disk('attachments')->assertExists($attachment->file_path);
-        $this->assertStringStartsWith("attachments/{$incident->id}/", $attachment->file_path);
+        $this->assertStringStartsWith(
+            "attachments/proof/{$incident->id}/",
+            $attachment->file_path,
+            'staff uploads are photo proof and live under proof/'
+        );
 
         // The old public location must stay empty — that is the whole point.
         $this->assertDirectoryDoesNotExist(
             storage_path('app/public/attachments/'.$incident->id)
+        );
+    }
+
+    public function test_a_staff_upload_is_reported_as_proof(): void
+    {
+        [$staff, $incident] = $this->assignedComplaint();
+
+        $this->assertSame(
+            IncidentAttachment::KIND_PROOF,
+            $this->uploadProof($staff, $incident)->kind
         );
     }
 

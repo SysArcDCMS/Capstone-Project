@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,11 +10,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * IncidentAttachment model — capstone tbl_incident_attachments.
  *
- * Photo proof uploaded by offsite staff upon completing a repair
- * (DFD 5.6 — Attach Photo Proof, Optional).
+ * Two kinds of photo hang off a complaint:
  *
- * The file lives on the private `attachments` disk at
- * storage/app/private/attachments/{incident_id}/{filename} and is only
+ *   - evidence — pictures the customer attaches when filing, showing the
+ *     problem they are reporting (DFD 2.2, optional).
+ *   - proof — pictures offsite staff attach after a repair, confirming the
+ *     work was done (DFD 5.6, optional).
+ *
+ * The kind is carried by the storage path rather than a column. A `kind`
+ * column would need a migration and a backfill, and the path already records
+ * the same fact: `attachments/{kind}/{incident_id}/{filename}`. The defence is
+ * close, so there is nothing to gain from a second source of truth that could
+ * disagree with the first.
+ *
+ * The file lives on the private `attachments` disk under
+ * storage/app/private/attachments/{kind}/{incident_id}/{filename} and is only
  * reachable through a time-limited signed URL.
  */
 class IncidentAttachment extends Model
@@ -27,12 +38,58 @@ class IncidentAttachment extends Model
      */
     public const DISK = 'attachments';
 
+    /** Customer photo, filed with the complaint. */
+    public const KIND_EVIDENCE = 'evidence';
+
+    /** Offsite staff photo, confirming a repair. */
+    public const KIND_PROOF = 'proof';
+
+    /**
+     * The path segment for each kind, and the only place the two are written
+     * down. `getKindAttribute()` reads it back out of the stored path.
+     *
+     * @var array<string, string>
+     */
+    private const KIND_DIRS = [
+        self::KIND_EVIDENCE => 'evidence',
+        self::KIND_PROOF    => 'proof',
+    ];
+
     /**
      * How long a generated photo URL stays valid. Short enough that a URL
      * pasted into a chat or left in device logs goes stale, long enough for
      * the gallery and the full-screen viewer in one sitting.
      */
     public const URL_TTL_MINUTES = 15;
+
+    /**
+     * MIME types a complaint photo may have, and the extension each is stored
+     * under (DFD 2.2 and 5.6 are both image-only).
+     *
+     * The extension comes from the server-sniffed MIME rather than
+     * getClientOriginalExtension(), so the stored key always matches the
+     * bytes actually written. A client asking for `photo.php` gets a `.jpg`
+     * key, and a mismatched extension can no longer influence how the file is
+     * served back.
+     *
+     * @var array<string, string>
+     */
+    public const MIME_EXTENSIONS = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    /** Max size of a single photo: 5 MB. */
+    public const MAX_BYTES = 5 * 1024 * 1024;
+
+    /**
+     * How many evidence photos a customer may attach while filing.
+     *
+     * Three is enough to show a leak from more than one angle without letting
+     * one complaint turn into a photo album.
+     */
+    public const MAX_EVIDENCE_PHOTOS = 3;
 
     protected $table = 'tbl_incident_attachments';
 
@@ -48,13 +105,13 @@ class IncidentAttachment extends Model
     ];
 
     /**
-     * Without this the `url` accessor below is invisible to `toArray()`: Eloquent
-     * only serialises real columns plus appended attributes, so every client
-     * received `file_path` and nothing to fetch the image with.
+     * `kind` is derived, so it has to be appended explicitly to reach clients —
+     * the mobile gallery labels each photo, and it cannot infer the kind from
+     * a URL it is not allowed to inspect.
      *
      * @var list<string>
      */
-    protected $appends = ['url'];
+    protected $appends = ['url', 'kind'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -72,6 +129,61 @@ class IncidentAttachment extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Storage path for a new photo of the given kind.
+     *
+     * @param  string  $kind      one of the KIND_* constants
+     * @param  int     $incidentId
+     * @param  string  $filename  already extensioned, uuid-based
+     */
+    public static function pathFor(string $kind, int $incidentId, string $filename): string
+    {
+        $dir = self::KIND_DIRS[$kind] ?? throw new \InvalidArgumentException(
+            "Unknown attachment kind [{$kind}]."
+        );
+
+        return "attachments/{$dir}/{$incidentId}/{$filename}";
+    }
+
+    /**
+     * Whether this photo is the customer's evidence or the staff's proof.
+     *
+     * Reads the directory segment written by pathFor(). Rows that predate the
+     * split were stored as attachments/{incident_id}/{filename} with no kind
+     * segment, and those were all staff photo proof, so they read back as
+     * 'proof' rather than falling through to a null.
+     */
+    public function getKindAttribute(): string
+    {
+        // attachments/{kind}/{incident_id}/{filename} — the segment after
+        // "attachments/" is the kind. Rows written before the split have the
+        // incident id in that position instead; those were all staff photo
+        // proof, so anything that is not evidence reads back as proof.
+        $segment = explode('/', (string) $this->file_path)[1] ?? '';
+
+        return $segment === self::KIND_DIRS[self::KIND_EVIDENCE]
+            ? self::KIND_EVIDENCE
+            : self::KIND_PROOF;
+    }
+
+    /** @param  Builder<self>  $query */
+    public function scopeEvidence(Builder $query): Builder
+    {
+        return $query->where('file_path', 'LIKE', 'attachments/evidence/%');
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     *
+     * @return Builder<self>
+     */
+    public function scopeProof(Builder $query): Builder
+    {
+        // Only two kinds exist, so "not evidence" is "proof" — which also
+        // covers the pre-split rows carrying no kind segment at all.
+        return $query->where('file_path', 'NOT LIKE', 'attachments/evidence/%');
     }
 
     /**
