@@ -58,9 +58,14 @@ Route::middleware('auth:api')->group(function () {
     Route::get('incidents/{id}',          [IncidentController::class, 'show'])
         ->whereNumber('id');
 
+    // Status is the offsite team's task, so this is offsite_staff only.
+    // Engineers and administrators may correct a category (routeIncident
+    // below) but cannot move a complaint along: the portal has no status
+    // write route either, so there is no path to change status that bypasses
+    // this line.
     Route::patch('incidents/{id}/status', [IncidentController::class, 'updateStatus'])
         ->whereNumber('id')
-        ->middleware('role:offsite_staff,engineer,administrator');
+        ->middleware('role:offsite_staff');
 
     // Manual re-route (admin/engineer)
     Route::post('incidents/{id}/route',   [AssignmentController::class, 'routeIncident'])

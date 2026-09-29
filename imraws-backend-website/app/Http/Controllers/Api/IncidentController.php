@@ -243,12 +243,25 @@ class IncidentController extends Controller
     /**
      * PATCH /api/incidents/{id}/status
      *
-     * Offsite staff and engineers update incident status
-     * (capstone DFD 5.3 — Update Status to In Progress,
-     * DFD 5.7 — Update Status to Resolved).
+     * Offsite staff update incident status (capstone DFD 5.3 — Update Status
+     * to In Progress, DFD 5.7 — Update Status to Resolved).
      */
     public function updateStatus(Request $request, int $id): JsonResponse
     {
+        /** @var User $user */
+        $user = $request->user();
+
+        // Repeated here on purpose. The route already carries
+        // role:offsite_staff, but the role matrix is the whole point of this
+        // change: moving a complaint along is the offsite team's task, and a
+        // future edit that widens the route middleware would silently reopen
+        // it. Checking the user directly means the rule survives the route.
+        if ($user->role !== 'offsite_staff') {
+            return response()->json([
+                'message' => 'Only offsite staff can update complaint status.',
+            ], 403);
+        }
+
         $data = $request->validate([
             'status' => ['required', Rule::in([
                 Incident::STATUS_OPEN,
@@ -260,16 +273,13 @@ class IncidentController extends Controller
             'resolution_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        /** @var User $user */
-        $user = $request->user();
-
         $incident = Incident::find($id);
         if (! $incident) {
             return response()->json(['message' => 'Incident not found.'], 404);
         }
 
-        // Offsite staff and engineers may only touch complaints inside their
-        // own visibility, not every complaint in the table.
+        // Offsite staff may only touch complaints inside their own
+        // visibility, not every complaint in the table.
         if (! VisibilityScope::canViewIncident($incident, $user)) {
             return response()->json(['message' => 'Incident not found.'], 404);
         }

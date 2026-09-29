@@ -86,3 +86,15 @@
   <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">{!! $complaints->links() !!}</div>
   @include('complaints._action_modal')
 @endsection
+
+@push('scripts')
+<script>
+  // The table is rendered server-side, so a category correction that
+  // reassigns a complaint has to pull a fresh page to show the new row. The
+  // modal calls this after a successful write. Reloading keeps the active
+  // filters and the current page of results, both of which live in the URL.
+  window.onComplaintChanged = function () {
+    window.location.reload();
+  };
+</script>
+@endpush

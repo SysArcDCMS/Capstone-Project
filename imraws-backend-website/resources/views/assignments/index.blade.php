@@ -55,3 +55,13 @@
   <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">{!! $assignments->links() !!}</div>
   @include('complaints._action_modal')
 @endsection
+
+@push('scripts')
+<script>
+  // Same reason as complaints/index: this table is server-rendered, and a
+  // category correction can create an assignment row that is not on screen yet.
+  window.onComplaintChanged = function () {
+    window.location.reload();
+  };
+</script>
+@endpush

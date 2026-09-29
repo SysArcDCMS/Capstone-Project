@@ -207,47 +207,16 @@ class PortalController extends Controller
                 'submitted_at'=> $incident->submitted_at?->toDateTimeString(),
                 'customer'    => $incident->customer?->full_name,
                 'current'     => $current
-                    ? ['team_leader' => $current->teamLeader?->full_name, 'action_status' => $current->action_status]
+                    ? [
+                        'team_leader'      => $current->teamLeader?->full_name,
+                        'action_status'    => $current->action_status,
+                        // Written by the offsite team when they resolve the
+                        // job. The portal only displays it.
+                        'resolution_notes' => $current->resolution_notes,
+                    ]
                     : null,
                 'categories' => $categories,
             ],
-        ]);
-    }
-
-    /**
-     * PATCH /complaints/{id}/status
-     *
-     * Ajax status update from the action modal. Resolving sets resolved_at;
-     * reopening clears it. Customers are notified of the change.
-     */
-    public function complaintUpdateStatus(Request $request, int $id): JsonResponse
-    {
-        $data = $request->validate([
-            'status' => ['required', Rule::in([
-                Incident::STATUS_OPEN,
-                Incident::STATUS_ASSIGNED,
-                Incident::STATUS_IN_PROGRESS,
-                Incident::STATUS_RESOLVED,
-                Incident::STATUS_REJECTED,
-            ])],
-        ]);
-
-        $incident = $this->findVisibleIncident($id);
-        $old = $incident->only(['status', 'resolved_at']);
-
-        $incident->status = $data['status'];
-        $incident->resolved_at = $data['status'] === Incident::STATUS_RESOLVED ? now() : null;
-        $incident->updated_by = auth()->id();
-        $incident->save();
-
-        AuditLog::record(auth()->id(), 'web.update_status', 'tbl_incidents', $incident->id,
-            oldValue: $old, newValue: $incident->only(['status', 'resolved_at']));
-
-        $this->notifyStatusChange($incident, $data['status'] ?? null);
-
-        return response()->json([
-            'message' => 'Status updated to '.str_replace('_', ' ', $incident->status).'.',
-            'data'    => $incident->only(['id', 'status', 'resolved_at']),
         ]);
     }
 
@@ -322,80 +291,6 @@ class PortalController extends Controller
                 'department'       => $assignment->teamLeader?->department_team,
             ],
         ]);
-    }
-
-    /**
-     * POST /complaints/{id}/resolve
-     *
-     * Resolve with optional resolution notes. Marks the active assignment
-     * as resolved too, so the team leader queue reflects completion.
-     */
-    public function complaintResolve(Request $request, int $id): JsonResponse
-    {
-        $data = $request->validate([
-            'resolution_notes' => ['nullable', 'string', 'max:5000'],
-        ]);
-
-        $incident = $this->findVisibleIncident($id);
-        $old = $incident->only(['status', 'resolved_at']);
-
-        $incident->status      = Incident::STATUS_RESOLVED;
-        $incident->resolved_at = now();
-        $incident->updated_by  = auth()->id();
-        $incident->save();
-
-        $assignment = $incident->currentAssignment();
-        if ($assignment) {
-            $assignment->action_status   = \App\Models\Assignment::ACTION_RESOLVED;
-            $assignment->resolution_notes = $data['resolution_notes'] ?? null;
-            $assignment->updated_by       = auth()->id();
-            $assignment->save();
-        }
-
-        AuditLog::record(auth()->id(), 'web.resolve', 'tbl_incidents', $incident->id,
-            oldValue: $old, newValue: $incident->only(['status', 'resolved_at']));
-
-        $this->notifyStatusChange($incident, $data['resolution_notes'] ?? null);
-
-        return response()->json([
-            'message' => "Complaint #{$incident->id} resolved.",
-            'data'    => $incident->only(['id', 'status', 'resolved_at']),
-        ]);
-    }
-
-    /**
-     * Notify the customer (and current team leader) about a status change.
-     */
-    private function notifyStatusChange(Incident $incident, ?string $note = null): void
-    {
-        if ($incident->customer_id) {
-            Notification::create([
-                'incident_id' => $incident->id,
-                'user_id'     => $incident->customer_id,
-                'message'     => match ($incident->status) {
-                    Incident::STATUS_IN_PROGRESS => "Your complaint #{$incident->id} is now being worked on.",
-                    Incident::STATUS_RESOLVED    => "Your complaint #{$incident->id} has been resolved."
-                        . ($note ? ' Note: '.$note : ''),
-                    Incident::STATUS_REJECTED    => "Your complaint #{$incident->id} could not be processed.",
-                    default => "Your complaint #{$incident->id} status: {$incident->status}.",
-                },
-                'is_read'     => false,
-                'created_by'  => auth()->id(),
-                'updated_by'  => auth()->id(),
-            ]);
-        }
-
-        $currentLeader = $incident->currentAssignment()?->team_leader_id;
-        if ($currentLeader) {
-            Notification::create([
-                'incident_id' => $incident->id,
-                'user_id'     => $currentLeader,
-                'message'     => "Incident #{$incident->id} status changed to {$incident->status}.",
-                'is_read'     => false,
-                'created_by'  => auth()->id(),
-                'updated_by'  => auth()->id(),
-            ]);
-        }
     }
 
     public function complaintsExport()

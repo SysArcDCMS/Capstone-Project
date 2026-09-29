@@ -1,8 +1,11 @@
 {{--
   Complaint action modal — shared by complaints/index, complaints/show,
   assignments/index. Opens via openComplaintActions(id); all traffic is
-  fetch + JSON against the complaints.modal / updateStatus / route /
-  resolve endpoints.
+  fetch + JSON against the complaints.modal / route endpoints.
+
+  Category correction is the only write. Status and resolution notes are
+  owned by the offsite team and are shown here read-only, so there is no
+  status form and no resolve form to submit.
 --}}
 <div class="modal-overlay" id="complaint-modal" hidden>
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="complaint-modal-title">
@@ -24,24 +27,14 @@
         <span id="cm-leader" class="cm-value"></span>
       </div>
 
-      {{-- 1. Status --}}
-      <form class="cm-form" id="cm-status-form">
-        @csrf
-        <input type="hidden" name="status_target" value="" />
-        <div class="cm-section">
-          <span class="cm-label" for="cm-status">Update status</span>
-          <div class="cm-row">
-            <select name="status" id="cm-status" class="cm-select">
-              <option value="open">Open</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <button type="submit" class="btn-primary" style="padding:0.4rem 1rem;">Save</button>
-          </div>
+      {{-- 1. Status (read-only) --}}
+      <div class="cm-section">
+        <span class="cm-label">Status</span>
+        <div class="cm-row">
+          <span class="cm-value" id="cm-status">—</span>
         </div>
-      </form>
+        <div class="cm-hint">Read-only. Moving a complaint along is the offsite team's task, so it is changed from the mobile app.</div>
+      </div>
 
       {{-- 2. Route / Assign --}}
       <form class="cm-form" id="cm-route-form">
@@ -68,17 +61,11 @@
         </div>
       </form>
 
-      {{-- 3. Resolve --}}
-      <form class="cm-form" id="cm-resolve-form">
-        @csrf
-        <div class="cm-section">
-          <span class="cm-label" for="cm-notes">Resolve</span>
-          <textarea name="resolution_notes" id="cm-notes" rows="2" placeholder="Resolution notes (optional)"></textarea>
-          <div style="margin-top:0.5rem;">
-            <button type="submit" class="btn-success" style="padding:0.4rem 1rem;"><i data-lucide="check-circle" style="width:1rem;height:1rem;"></i> Mark Resolved</button>
-          </div>
-        </div>
-      </form>
+      {{-- 3. Resolution notes (read-only) --}}
+      <div class="cm-section">
+        <span class="cm-label">Resolution notes</span>
+        <p class="cm-desc" id="cm-notes">—</p>
+      </div>
 
       <div id="cm-status-msg" class="cm-status-msg" hidden></div>
     </div>
@@ -91,11 +78,18 @@
     const overlay = document.getElementById('complaint-modal');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const modalUrl   = "{{ route('complaints.modal', '_ID_') }}".replace(/_ID_/g, '_ID');
-    const statusUrl  = "{{ route('complaints.updateStatus', '_ID_') }}".replace(/_ID_/g, '_ID');
     const routeUrl   = "{{ route('complaints.route', '_ID_') }}".replace(/_ID_/g, '_ID');
-    const resolveUrl = "{{ route('complaints.resolve', '_ID_') }}".replace(/_ID_/g, '_ID');
     let currentId = null;
     let currentCategory = '';
+
+    // Default refresh hook. Complaints on screen call this after the category
+    // changes so their table re-renders. A page that can reload itself should
+    // assign window.onComplaintChanged; the no-op here keeps the call sites
+    // safe when it is never defined, which is what happens today — the
+    // category change landed but the list stayed stale.
+    if (typeof window.onComplaintChanged !== 'function') {
+      window.onComplaintChanged = function () {};
+    }
 
     window.openComplaintActions = function (id) {
       currentId = id;
@@ -107,9 +101,13 @@
       document.getElementById('cm-auto').textContent = '';
 
       fetch(modalUrl.replace('_ID', id), { headers: { 'X-CSRF-TOKEN': csrfToken } })
-        .then(r => r.json())
-        .then(json => { fill(json.data); currentCategory = json.data.category || ''; })
-        .catch(() => showMsg('Could not load complaint details.'));
+        .then(readJson)
+        .then(({ ok, status, json }) => {
+          if (!ok) { showMsg(failureMessage(json, 'Could not load complaint details.', status), false); return; }
+          fill(json.data);
+          currentCategory = json.data.category || '';
+        })
+        .catch(() => showMsg('Could not reach the server.', false));
     };
 
     window.closeComplaintActions = function () {
@@ -126,7 +124,9 @@
       document.getElementById('cm-code').textContent = data.code;
       document.getElementById('cm-customer').textContent = data.customer || 'Unknown customer';
       document.getElementById('cm-description').textContent = data.description;
-      document.getElementById('cm-status').value = data.status;
+      setStatus(data.status);
+      document.getElementById('cm-notes').textContent =
+        (data.current && data.current.resolution_notes) || '—';
 
       const meta = document.getElementById('cm-meta');
       meta.innerHTML = [
@@ -159,6 +159,41 @@
       msg.hidden = false;
     }
 
+    function setStatus(status) {
+      document.getElementById('cm-status').textContent =
+        (status || '—').replace(/_/g, ' ');
+    }
+
+    /**
+     * Read a fetch response without assuming the body is JSON.
+     *
+     * A 403/404 from Laravel's error handler is HTML, so r.json() used to
+     * reject and the caller showed a generic message that hid the real
+     * reason. Callers only see {ok, json} and decide what to display.
+     */
+    function readJson(r) {
+      return r.json()
+        .catch(() => ({}))
+        .then(json => ({ ok: r.ok, status: r.status, json: json || {} }));
+    }
+
+    /**
+     * Prefer the server's explanation.
+     *
+     * A bare "Failed." told an administrator nothing about whether they were
+     * forbidden, missing the complaint, or hitting a validation rule. When the
+     * body is not JSON at all — Laravel's error page — the status code is all
+     * there is, so report it rather than hiding it.
+     */
+    function failureMessage(json, fallback, status) {
+      if (json && json.message) return json.message;
+      if (json && json.errors) {
+        const first = Object.keys(json.errors)[0];
+        if (first) return json.errors[first][0];
+      }
+      return status ? fallback + ' (HTTP ' + status + ').' : fallback;
+    }
+
     function post(url, formData) {
       return fetch(url, {
         method: 'POST',
@@ -168,21 +203,8 @@
           'X-Requested-With': 'XMLHttpRequest'
         },
         body: formData
-      }).then(async r => ({ ok: r.ok, json: await r.json().catch(() => ({})) }));
+      }).then(readJson);
     }
-
-    // Status
-    document.getElementById('cm-status-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const fd = new FormData();
-      fd.append('_method', 'PATCH');
-      fd.append('status', document.getElementById('cm-status').value);
-      post(statusUrl.replace('_ID', currentId), fd).then(({ ok, json }) => {
-        showMsg(json.message || (ok ? 'Saved.' : 'Failed.'), ok);
-        document.getElementById('cm-status').value = json.data ? json.data.status : document.getElementById('cm-status').value;
-        if (ok && typeof window.onComplaintChanged === 'function') window.onComplaintChanged();
-      });
-    });
 
     // Route (instant — fires on category change)
     window.catDDChanged = function (dd, value) {
@@ -192,20 +214,24 @@
 
       const fd = new FormData();
       fd.append('category', category);
-      post(routeUrl.replace('_ID', currentId), fd).then(({ ok, json }) => {
+      post(routeUrl.replace('_ID', currentId), fd).then(({ ok, status, json }) => {
         if (ok && json.data) {
           currentCategory = json.data.category || category;
           updateChip('Category', json.data.category || category);
           if (json.data.status) {
-            document.getElementById('cm-status').value = json.data.status;
+            setStatus(json.data.status);
             updateChip('Status', json.data.status.replace('_', ' '));
           }
           document.getElementById('cm-auto').textContent = json.data.team_leader
             ? 'Auto-assigned to: ' + json.data.team_leader + ' (' + String(json.data.department || '').replace('_', ' ') + ')'
             : '';
-          if (typeof window.onComplaintChanged === 'function') window.onComplaintChanged();
+          window.onComplaintChanged();
         }
-        showMsg(json.message || (ok ? 'Routed to available staff.' : 'Routing failed.'), ok);
+        showMsg(
+          ok ? (json.message || 'Routed to available staff.')
+             : failureMessage(json, 'Routing failed.', status),
+          ok
+        );
       });
     };
 
@@ -215,17 +241,6 @@
         if (b && b.textContent === key) chip.innerHTML = '<b>' + key + '</b> ' + value;
       });
     }
-
-    // Resolve
-    document.getElementById('cm-resolve-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const fd = new FormData();
-      fd.append('resolution_notes', document.getElementById('cm-notes').value);
-      post(resolveUrl.replace('_ID', currentId), fd).then(({ ok, json }) => {
-        showMsg(json.message || (ok ? 'Resolved.' : 'Failed.'), ok);
-        if (ok && typeof window.onComplaintChanged === 'function') window.onComplaintChanged();
-      });
-    });
   })();
 </script>
 @endpush

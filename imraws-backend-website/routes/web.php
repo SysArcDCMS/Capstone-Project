@@ -24,11 +24,15 @@ Route::middleware('auth:web')->group(function () {
 
     // Modal-based complaint actions (engineer / administrator).
     // JSON-first: the modal fetches data and submits via fetch.
+    //
+    // Only category correction is writable here. Status changes are the
+    // offsite team's task, so the portal deliberately exposes no status
+    // write route: an engineer or administrator can inspect the status but
+    // cannot move the complaint along. Offsite staff update status through
+    // the mobile API (see routes/api.php, offsite_staff only).
     Route::middleware('role:administrator,engineer')->group(function () {
         Route::get('/complaints/{id}/modal',   [PortalController::class, 'complaintModal'])->whereNumber('id')->name('complaints.modal');
-        Route::patch('/complaints/{id}/status',[PortalController::class, 'complaintUpdateStatus'])->whereNumber('id')->name('complaints.updateStatus');
         Route::post('/complaints/{id}/route',  [PortalController::class, 'complaintRoute'])->whereNumber('id')->name('complaints.route');
-        Route::post('/complaints/{id}/resolve',[PortalController::class, 'complaintResolve'])->whereNumber('id')->name('complaints.resolve');
     });
 
     // Users
