@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../models/attachment_model.dart';
 import '../theme/app_colors.dart';
 import '../widgets/maynilad_logo.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -21,6 +23,10 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   final _locationController = TextEditingController();
   LatLng? _pickedLocation;
 
+  /// Photos the customer picked to show the problem, in the order added.
+  final List<ComplaintPhoto> _photos = [];
+  bool _picking = false;
+
   /// Street text resolved by the picker for the current pin. Kept apart from
   /// [_locationController] so the summary row can echo what the pin resolved to
   /// without echoing coordinates.
@@ -31,6 +37,65 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     _controller.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  /// Add photos of the problem, up to the server's limit.
+  ///
+  /// Re-encoded as JPEG rather than uploaded as picked: a modern phone hands
+  /// back HEIC, which the server rejects because it only accepts JPEG, PNG, and
+  /// WebP. Re-encoding here means a customer on a default camera setting is not
+  /// turned away for choosing the wrong format, and it strips location metadata
+  /// from the picture on the way.
+  Future<void> _addPhotos() async {
+    if (_picking) return;
+
+    final remaining = ComplaintPhoto.maxPhotos - _photos.length;
+    if (remaining <= 0) {
+      _toast('You can attach up to ${ComplaintPhoto.maxPhotos} photos.');
+      return;
+    }
+
+    setState(() => _picking = true);
+
+    try {
+      final picked = await ImagePicker().pickMultiImage(
+        limit: remaining,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (picked.isEmpty || !mounted) return;
+
+      final added = <ComplaintPhoto>[];
+
+      for (final file in picked.take(remaining)) {
+        final bytes = await file.readAsBytes();
+        if (bytes.isEmpty) continue;
+        added.add(ComplaintPhoto.jpg(bytes: bytes));
+      }
+
+      if (added.isEmpty) return;
+
+      setState(() => _photos.addAll(added));
+    } catch (_) {
+      // Permission denied, or the picker was dismissed by the system. The
+      // complaint is still submittable without photos, so this is a message
+      // rather than a blocking error.
+      if (mounted) _toast('Could not open your photos.');
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  void _removePhotoAt(int index) {
+    setState(() => _photos.removeAt(index));
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _pickLocation() async {
@@ -72,8 +137,10 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     final proceed = await confirmAction(
       context,
       title: 'Submit Complaint?',
-      message:
-          'Your complaint will be submitted, analyzed, and routed to the appropriate department.',
+      message: _photos.isEmpty
+          ? 'Your complaint will be submitted, analyzed, and routed to the appropriate department.'
+          : 'Your complaint and ${_photos.length} photo'
+              '${_photos.length == 1 ? '' : 's'} will be submitted, analyzed, and routed to the appropriate department.',
       confirmLabel: 'Submit',
     );
     if (proceed != true) return;
@@ -87,6 +154,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
           : _locationController.text.trim(),
       latitude: _pickedLocation?.latitude,
       longitude: _pickedLocation?.longitude,
+      photos: List.unmodifiable(_photos),
     );
 
     if (!mounted) return;
@@ -235,6 +303,16 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       ),
                       const SizedBox(height: 12),
 
+                      // Photos of the problem. Optional, and sent with the
+                      // complaint so there is no second request to retry.
+                      _PhotoPicker(
+                        photos: _photos,
+                        busy: _picking,
+                        onAdd: _addPhotos,
+                        onRemove: _removePhotoAt,
+                      ),
+                      const SizedBox(height: 12),
+
                       // Location field
                       TextField(
                         controller: _locationController,
@@ -370,6 +448,165 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Optional photo attachments for a complaint.
+///
+/// Shows the picked photos as removable thumbnails and an add tile. The count
+/// in the label tracks the server limit, so a customer learns the cap before
+/// picking rather than from a failed upload.
+class _PhotoPicker extends StatelessWidget {
+  final List<ComplaintPhoto> photos;
+  final bool busy;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  const _PhotoPicker({
+    required this.photos,
+    required this.busy,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final atLimit = photos.length >= ComplaintPhoto.maxPhotos;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.add_a_photo_outlined,
+                size: 18, color: AppColors.textMuted),
+            const SizedBox(width: 8),
+            const Text(
+              'Photos of the problem (optional)',
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${photos.length}/${ComplaintPhoto.maxPhotos}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 84,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            // Keep the add tile reachable by scrolling, rather than overflowing
+            // once three thumbnails are in place.
+            physics: const BouncingScrollPhysics(),
+            itemCount: atLimit ? photos.length : photos.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              if (index == photos.length) {
+                return _AddTile(
+                  onTap: busy || atLimit ? null : onAdd,
+                  busy: busy,
+                  atLimit: atLimit,
+                );
+              }
+              return _PhotoTile(
+                photo: photos[index],
+                onRemove: () => onRemove(index),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddTile extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool busy;
+  final bool atLimit;
+
+  const _AddTile({required this.onTap, required this.busy, required this.atLimit});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          color: AppColors.fieldBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(
+          child: busy
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  atLimit ? Icons.block : Icons.add_photo_alternate_outlined,
+                  size: 22,
+                  color: atLimit ? AppColors.textMuted : AppColors.navy,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoTile extends StatelessWidget {
+  final ComplaintPhoto photo;
+  final VoidCallback onRemove;
+
+  const _PhotoTile({required this.photo, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.memory(
+            photo.bytes,
+            width: 84,
+            height: 84,
+            fit: BoxFit.cover,
+            // A photo that will not decode is not worth blocking the complaint
+            // on; show the broken tile and let the customer remove it.
+            errorBuilder: (_, __, ___) => Container(
+              width: 84,
+              height: 84,
+              color: AppColors.fieldBg,
+              child: const Icon(Icons.broken_image_outlined,
+                  size: 20, color: AppColors.textMuted),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: AppColors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 13, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

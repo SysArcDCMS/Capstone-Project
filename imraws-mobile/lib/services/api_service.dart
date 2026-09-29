@@ -246,6 +246,47 @@ class ApiService {
     }
   }
 
+  /// Multipart POST of plain fields plus a repeated `photos[]` file list.
+  ///
+  /// Used for complaint submission, where the photos have to travel in the same
+  /// request as the complaint itself. The customer has no incident id until the
+  /// complaint is created, so a separate upload call would mean asking them to
+  /// retry if the second request failed.
+  ///
+  /// Each file carries its own content type. Sending them as
+  /// application/octet-stream makes the server's image sniffing unreliable, and
+  /// the upload is rejected when the sniffed type is not an image.
+  Future<dynamic> postMultipart(
+    String path, {
+    Map<String, dynamic> fields = const {},
+    List<({Uint8List bytes, String filename, String contentType})> files = const [],
+    String fileField = 'photos',
+  }) async {
+    try {
+      final form = FormData();
+
+      fields.forEach((key, value) {
+        if (value != null) form.fields.add(MapEntry(key, value.toString()));
+      });
+
+      for (final file in files) {
+        form.files.add(MapEntry(
+          '$fileField[]',
+          MultipartFile.fromBytes(
+            file.bytes,
+            filename: file.filename,
+            contentType: DioMediaType.parse(file.contentType),
+          ),
+        ));
+      }
+
+      final res = await dio.post<dynamic>(path, data: form);
+      return res.data;
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    }
+  }
+
   ApiException _toApiException(DioException e) {
     final status = e.response?.statusCode;
     final data = e.response?.data;

@@ -424,18 +424,27 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
                               // in-section empty state to justify showing one.
                               // Staff still have the separate "Attach Photo
                               // Proof" button for adding the first photo.
+                              //
+                              // The two kinds are listed separately: a photo the
+                              // customer attached when filing is not the same
+                              // claim as a photo staff added to confirm a repair,
+                              // and one undifferentiated row of thumbnails
+                              // invites that confusion.
                               if (incident.attachments.isNotEmpty) ...[
-                                const Text(
-                                  'Image Attachment',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textBody),
-                                ),
-                                const SizedBox(height: 8),
-                                _AttachmentGallery(
-                                    attachments: incident.attachments),
-                                const SizedBox(height: 18),
+                                for (final group in _attachmentGroups(
+                                    incident.attachments)) ...[
+                                  Text(
+                                    group.label,
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textBody),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _AttachmentGallery(
+                                      attachments: group.attachments),
+                                  const SizedBox(height: 18),
+                                ],
                               ],
 
                               if (_resolutionNote(incident) != null) ...[
@@ -667,7 +676,35 @@ class _FieldRow extends StatelessWidget {
   }
 }
 
-/// Horizontal strip of photo proofs, tappable for a full-screen view.
+/// One labelled band of photos in the detail view.
+typedef _AttachmentGroup = ({String label, List<Attachment> attachments});
+
+/// Split attachments into a customer's evidence and staff photo proofs.
+///
+/// Returns only the groups that have photos, so a complaint with just one kind
+/// does not render an empty heading for the other. Evidence comes first because
+/// it is the customer's own account of the problem; proof follows as the
+/// staff side of the same story.
+List<_AttachmentGroup> _attachmentGroups(List<Attachment> attachments) {
+  final evidence = <Attachment>[];
+  final proof = <Attachment>[];
+
+  for (final attachment in attachments) {
+    (attachment.isEvidence ? evidence : proof).add(attachment);
+  }
+
+  return [
+    if (evidence.isNotEmpty)
+      (
+        label: Attachment.labelForKind(Attachment.kindEvidence),
+        attachments: evidence
+      ),
+    if (proof.isNotEmpty)
+      (label: Attachment.labelForKind(Attachment.kindProof), attachments: proof),
+  ];
+}
+
+/// Horizontal strip of photos, tappable for a full-screen view.
 class _AttachmentGallery extends StatelessWidget {
   const _AttachmentGallery({required this.attachments});
 

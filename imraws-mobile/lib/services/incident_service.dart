@@ -58,20 +58,43 @@ class IncidentService {
   }
 
   /// POST /api/incidents — submission triggers the NLP pipeline server-side.
-  /// Returns the full `{data, analysis, assignment}` payload.
+  ///
+  /// [photos] are the customer's own pictures of the problem (evidence), sent
+  /// in the same request as the complaint. Returns the full
+  /// `{data, analysis, assignment, photos_saved, photo_warnings}` payload.
+  ///
+  /// Passing any photo switches the request to multipart, so [location] and
+  /// the coordinates are sent as form fields rather than a JSON body. The
+  /// server handles both.
   Future<Map<String, dynamic>> submitComplaint({
     required String description,
     String? location,
     double? latitude,
     double? longitude,
+    List<ComplaintPhoto> photos = const [],
   }) async {
-    final data = await _api.post(ApiConfig.incidents, data: {
+    final fields = <String, dynamic>{
       'description': description.trim(),
       if (location != null && location.trim().isNotEmpty)
         'location': location.trim(),
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
-    });
+    };
+
+    final data = photos.isEmpty
+        ? await _api.post(ApiConfig.incidents, data: fields)
+        : await _api.postMultipart(
+            ApiConfig.incidents,
+            fields: fields,
+            files: photos
+                .map((p) => (
+                      bytes: p.bytes,
+                      filename: p.filename,
+                      contentType: p.contentType,
+                    ))
+                .toList(),
+          );
+
     if (data is! Map<String, dynamic>) {
       throw ApiException(0, 'Could not submit complaint.');
     }

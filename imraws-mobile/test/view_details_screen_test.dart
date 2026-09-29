@@ -193,22 +193,25 @@ void main() {
   });
 
   group('ViewDetailsScreen image attachments', () {
-    Incident seedWithAttachments() => Incident.fromJson({
+    Incident seedWithAttachments({List<Map<String, dynamic>>? attachments}) =>
+        Incident.fromJson({
           'id': 42,
           'customer_id': 7,
           'description': 'Water meter is leaking.',
           'location': 'Zone 4, Kamuning',
           'status': 'in_progress',
-          'attachments': [
-            {
-              'id': 5,
-              'incident_id': 42,
-              'file_path': 'storage/attachments/leak.png',
-              'original_name': 'leak.png',
-              'mime_type': 'image/png',
-              'url': '/storage/attachments/leak.png',
-            },
-          ],
+          'attachments': attachments ??
+              [
+                {
+                  'id': 5,
+                  'incident_id': 42,
+                  'file_path': 'attachments/proof/42/leak.png',
+                  'original_name': 'leak.png',
+                  'mime_type': 'image/png',
+                  'kind': 'proof',
+                  'url': '/api/attachments/5/photo',
+                },
+              ],
         });
 
     testWidgets('omits the attachment section entirely when none is attached',
@@ -216,36 +219,102 @@ void main() {
       await tester.pumpWidget(pumpDetails(tester, seed, customer));
       await tester.pumpAndSettle();
 
-      expect(find.text('Image Attachment'), findsNothing);
+      expect(find.text('Photos from you'), findsNothing);
+      expect(find.text('Photo proof'), findsNothing);
       expect(find.text('No image attached'), findsNothing);
       expect(find.byIcon(Icons.image_not_supported_outlined), findsNothing);
     });
 
     testWidgets('omits the attachment section for staff too when none is attached',
         (tester) async {
-      // Staff still need a way to add the first photo — that is the separate
+      // Staff still need a way to add the first photo �?" that is the separate
       // "Attach Photo Proof" button, which must survive the empty state.
       await tester.pumpWidget(pumpDetails(tester, seed, staff));
       await tester.pumpAndSettle();
 
-      expect(find.text('Image Attachment'), findsNothing);
+      expect(find.text('Photos from you'), findsNothing);
+      expect(find.text('Photo proof'), findsNothing);
       expect(find.text('No image attached'), findsNothing);
       expect(find.text('Attach Photo Proof'), findsOneWidget);
     });
 
-    testWidgets('shows the section and a thumbnail when an image is attached',
-        (tester) async {
+    testWidgets('labels a staff photo as photo proof', (tester) async {
       final withPhoto = seedWithAttachments();
 
       await tester.pumpWidget(pumpDetails(tester, withPhoto, customer));
       await tester.pumpAndSettle();
 
-      expect(find.text('Image Attachment'), findsOneWidget);
-      expect(find.text('No image attached'), findsNothing);
+      expect(find.text('Photo proof'), findsOneWidget);
+      // A customer has attached nothing, so their band must not appear.
+      expect(find.text('Photos from you'), findsNothing);
       // The thumb is an Image.network, and flutter_test blocks HTTP with a
-      // 400, so the widget's own errorBuilder is what renders here — its
+      // 400, so the widget's own errorBuilder is what renders here �?" its
       // presence proves the gallery laid out a thumb for the attachment.
       expect(find.text('Unavailable'), findsOneWidget);
+    });
+
+    testWidgets("labels the customer's own photo separately from proof",
+        (tester) async {
+      final mixed = seedWithAttachments(attachments: [
+        {
+          'id': 7,
+          'incident_id': 42,
+          'file_path': 'attachments/evidence/42/burst.jpg',
+          'original_name': 'burst.jpg',
+          'mime_type': 'image/jpeg',
+          'kind': 'evidence',
+          'url': '/api/attachments/7/photo',
+        },
+        {
+          'id': 8,
+          'incident_id': 42,
+          'file_path': 'attachments/proof/42/fixed.jpg',
+          'original_name': 'fixed.jpg',
+          'mime_type': 'image/jpeg',
+          'kind': 'proof',
+          'url': '/api/attachments/8/photo',
+        },
+      ]);
+
+      await tester.pumpWidget(pumpDetails(tester, mixed, customer));
+      await tester.pumpAndSettle();
+
+      // Both bands render, each with its own heading and one thumb.
+      expect(find.text('Photos from you'), findsOneWidget);
+      expect(find.text('Photo proof'), findsOneWidget);
+      expect(find.text('Unavailable'), findsNWidgets(2));
+    });
+
+    testWidgets('orders the customer photos ahead of the staff photos',
+        (tester) async {
+      // The customer's own account of the problem reads as the lead, with the
+      // staff confirmation after it.
+      final mixed = seedWithAttachments(attachments: [
+        {
+          'id': 8,
+          'incident_id': 42,
+          'file_path': 'attachments/proof/42/fixed.jpg',
+          'mime_type': 'image/jpeg',
+          'kind': 'proof',
+          'url': '/api/attachments/8/photo',
+        },
+        {
+          'id': 7,
+          'incident_id': 42,
+          'file_path': 'attachments/evidence/42/burst.jpg',
+          'mime_type': 'image/jpeg',
+          'kind': 'evidence',
+          'url': '/api/attachments/7/photo',
+        },
+      ]);
+
+      await tester.pumpWidget(pumpDetails(tester, mixed, customer));
+      await tester.pumpAndSettle();
+
+      final fromYou = tester.getTopLeft(find.text('Photos from you'));
+      final proof = tester.getTopLeft(find.text('Photo proof'));
+
+      expect(fromYou.dy, lessThan(proof.dy));
     });
   });
 }
